@@ -83,6 +83,13 @@ node scripts/check.mjs
 新增插件：添加独立包、plugins.json 条目、测试和兼容性记录，再按 [贡献说明](CONTRIBUTING.md) 发布与申请收录。
 只保存自制插件和必要公开证据，不提交 DSH 凭据、账户响应、聊天日志或本机设置。
 
+## 云端开发
+
+日常开发可在 Codex Cloud 进行，电脑休眠也能继续。选择本仓库准备仅自己可用的环境，使用 Node.js 24+，执行 node scripts/cloud-setup.mjs 和既有检查脚本。
+仓库自带 [发布 Skill](.agents/skills/dsh-plugin-release/SKILL.md) 与 [云端开发说明](docs/cloud-development.md)，不依赖个人电脑目录。
+源码和发布在云端完成；正式 DSH 安装、真实账号查询及 macOS 原生验收仍在用户电脑执行。云端测试通过不会自动扩大兼容声明。
+插件凭据、本机 .dsh 和真实会话不上传。已完成工作提交并推送 GitHub，云端聊天保存不能替代 Git。
+
 ## 许可证
 
 MIT。打包的第三方许可证随各插件一起提供。
