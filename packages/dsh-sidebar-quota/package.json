@@ -1,0 +1,73 @@
+{
+  "name": "dsh-sidebar-quota",
+  "version": "0.1.0",
+  "description": "DSH 左侧栏 DeepSeek、Codex 与 MoonShot 额度和本机今日消费",
+  "type": "module",
+  "license": "MIT",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "dsh": "0.2.0-rc.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    },
+    "compatibility": {
+      "dsh": "0.2.0-rc.2",
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build",
+    "pack:release": "npm pack --pack-destination ../../build/releases"
+  },
+  "devDependencies": {
+    "cheerio": "1.2.0",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "react": "19.2.0",
+    "@types/react": "19.2.2",
+    "@types/node": "24.10.0"
+  },
+  "author": "Hoya",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chinahhy/DSH-plugins.git",
+    "directory": "packages/dsh-sidebar-quota"
+  },
+  "homepage": "https://github.com/chinahhy/DSH-plugins/tree/main/packages/dsh-sidebar-quota",
+  "bugs": {
+    "url": "https://github.com/chinahhy/DSH-plugins/issues"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "quota",
+    "usage",
+    "sidebar"
+  ]
+}

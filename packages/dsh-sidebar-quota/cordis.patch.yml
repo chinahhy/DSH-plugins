@@ -1,0 +1,4 @@
+# One host row; DSH discovers the client export from the same package.
+- insert:
+    - id: sidebar-quota
+      name: dsh-sidebar-quota

@@ -1,0 +1,18 @@
+.dshsq{box-sizing:border-box;flex:1 1 100%;width:100%;min-width:0;padding:8px 6px 10px;font-size:12px;line-height:19px;color:var(--dsw-alias-label-primary);overflow-x:hidden;overflow-y:auto;max-height:50vh;font-variant-numeric:tabular-nums}
+div:has(> .dshsq){flex-wrap:wrap}
+.dshsq-heading{display:flex;align-items:center;gap:8px;color:var(--dsw-alias-label-tertiary);margin-bottom:9px;font-size:11px}
+.dshsq-heading:before,.dshsq-heading:after{content:"";height:1px;flex:1;background:var(--dsw-alias-border-l3)}
+.dshsq-provider{margin:0 0 10px;min-width:0}.dshsq-provider:last-child{margin-bottom:0}
+.dshsq-provider h3{font-size:12px;line-height:20px;font-weight:600;margin:0 0 3px;color:var(--dsw-alias-label-primary)}
+.dshsq-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:6px;color:var(--dsw-alias-label-secondary)}
+.dshsq-row>span:first-child{overflow-wrap:anywhere}.dshsq-value{text-align:right;white-space:nowrap;color:var(--dsw-alias-label-primary)}
+.dshsq-period{margin-top:2px;overflow-wrap:anywhere}.dshsq-note{color:var(--dsw-alias-label-tertiary)}
+.dshsq-stale{opacity:.65}.dshsq-quota{display:grid;grid-template-columns:42px minmax(5px,1fr) 36px;gap:7px;align-items:center;color:var(--dsw-alias-label-secondary);margin:3px 0}
+.dshsq-track{height:5px;width:100%;overflow:hidden;border-radius:4px;background:var(--dsw-alias-interactive-bg-hover)}
+.dshsq-fill{height:100%;border-radius:4px;transition:width .3s}.dshsq-percent{text-align:right;white-space:nowrap;color:var(--dsw-alias-label-primary)}
+.dshsq-good{background:#32a66a}.dshsq-warning{background:#c99b28}.dshsq-low{background:#e18132}.dshsq-critical{background:#df5757}
+.dshsq-text-low{color:#d57627}.dshsq-text-critical{color:#df5757}.dshsq-text-warning{color:#b58b22}
+.dshsq-rail{width:36px;padding:5px 0;text-align:center;font-size:11px}
+.dshsq-pulse{animation:dshsq-quota-nudge .8s ease-out 1}@keyframes dshsq-quota-nudge{50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.dshsq-fill{transition:none}.dshsq-pulse{animation:none}}
+@container(max-width:135px){.dshsq-quota{grid-template-columns:35px minmax(5px,1fr) 33px;gap:3px}}
