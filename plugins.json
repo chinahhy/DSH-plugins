@@ -8,7 +8,7 @@
       "dshVersions": [
         "0.2.0-rc.2"
       ],
-      "description": "DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费。",
+      "description": "DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费，支持手动刷新与独立折叠。",
       "releaseTag": "dsh-sidebar-quota-v0.1.1",
       "marketEntry": "chinahhy__DSH-plugins--packages-dsh-sidebar-quota.yml"
     }

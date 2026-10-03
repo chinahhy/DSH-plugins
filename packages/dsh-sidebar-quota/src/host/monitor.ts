@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import type { SidebarQuotaState, ApiState, CodexState, PricingState } from '../shared/types.ts'
+import type { SidebarQuotaState, ApiState, CodexState, PricingState, ProviderId } from '../shared/types.ts'
 import type { Context } from './contracts.ts'
 import { apiKey, codexCredential } from './credentials.ts'
 import { deepseekBalance } from './providers/deepseek.ts'
@@ -37,6 +37,13 @@ export class QuotaMonitor {
     await Promise.allSettled([this.refreshDeepseek(),this.refreshMoonshot(),this.refreshCodex(),this.scan(),this.refreshPricing()])
   }
   stop() { this.abort.abort() }
+  /** Manual refresh shares in-flight work with automatic queries. */
+  refresh(provider:ProviderId) {
+    return this.once(`manual:${provider}`,async()=>{
+      if(provider==='codex')await this.refreshCodex()
+      else await Promise.all([provider==='deepseek'?this.refreshDeepseek():this.refreshMoonshot(),this.scan()])
+    })
+  }
   private once(key:string,work:()=>Promise<void>):Promise<void> {
     if(this.abort.signal.aborted)return Promise.resolve()
     const existing=this.pending.get(key);if(existing)return existing

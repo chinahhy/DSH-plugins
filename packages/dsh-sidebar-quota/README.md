@@ -14,6 +14,8 @@
 - DeepSeek：今日消费、人民币 API 余额、峰谷状态、下一阶段倒计时。
 - ChatGPT / Codex：5h 与 Weekly 的**剩余**额度，四档颜色及重置时间提示。
 - MoonShot API：今日消费、可用余额。
+- 每家名称右侧提供手动刷新与独立展开/折叠按钮；折叠后仍可刷新。
+- 折叠选择在当前 DSH 页面来源中记忆，刷新页面、切换会话或收起整个侧栏后保留。
 
 Host 复用 DSH Credential Service：DeepSeek 默认或 Provider 配置的 `apiKeyEnv`；
 MoonShot 的 `llm-pi-ai/moonshotai[-cn]` API-key record 和既有 Key 引用；
@@ -57,6 +59,12 @@ K3 写入 TTL 无法从通用 DSH usage 分辨时标为无法计价。
 Codex 调用后同时刷新额度。全局日志每 20 秒增量检查。Client 每 5 秒只读取本机数字快照，
 每 30 秒本地更新倒计时，切换会话不重建全局 store、不触发上游全量请求。
 
+名称旁的刷新按钮立即查询**对应服务商**的余额或额度，API 分区同时复查本机今日消费；
+不等待 5 分钟周期，不会顺带查询另外两家，也不额外触发公共价表同步。
+刷新期间按钮显示进度并禁止重复点击，Host 对每家请求设 3 秒间隔；
+失败用红色按钮和安全提示标记，Codex 旧百分比清除为 `--`，可再次点击恢复。
+自动刷新周期不受折叠影响。按钮支持键盘操作和减少动画设置。
+
 Codex quota 使用当前 ChatGPT `backend-api/wham/usage` endpoint，
 **它不是公开稳定 API**，未来上游变化可能需要更新插件。只根据 `18000` / `604800`
 秒识别窗口；缺少 5h 不复用旧值。请求失败或超过 10 分钟未成功更新显示 `--`。
@@ -65,10 +73,13 @@ Codex quota 使用当前 ChatGPT `backend-api/wham/usage` endpoint，
 
 所有凭据、API 请求、日志解析和金额计算均在 Host。HTTP response 仅含数字、状态和安全提示。
 不返回 Key、access/refresh token、Cookie 或上游错误正文。外部请求有超时并拒绝重定向。
-读取路由仅接受本机 loopback、合法 Host 和同源请求；当前版本不支持远程 LAN 页面读额度。
+状态读取与刷新路由仅接受本机 loopback、合法 Host 和同源请求；刷新必须为带同源 Origin 的 POST，
+只允许三家预设 Provider。当前版本不支持远程 LAN 页面读额度。
 
 安装后仅新增 `$DSH_HOME/storages/dsh-sidebar-quota/` 中的非敏感价格历史缓存。
 增量游标保存在内存，插件重启后重新扫描当天相关日志。没有 Browser Storage 凭据缓存。
+浏览器 `dsh-sidebar-quota:collapsed:v1` 仅保存三家分区的折叠布尔值；清除此项可重置为全部展开。
+浏览器存储不可用时仍可操作，选择仅在当前插件生命周期中保留。
 
 ## 开发与构建
 
@@ -106,7 +117,8 @@ web 用户把 profile 换成 web。安装/更新后按 DSH 提示刷新或重启
 ## 验证边界
 
 已在官方 DSH 0.2.0-rc.2 的本机独立 profile 完成安装、启动与 19 项浏览器检查；
-37 项单元测试与严格类型检查通过，并完成三家 Provider 的真实账户只读查询。
+原始版本完成三家 Provider 的真实账户只读查询；当前开发版 41 项单元测试、严格类型检查与构建通过，
+另在同版隔离 DSH 完成 19 项刷新/折叠交互检查（合成数据），包括状态记忆、单家查询、失败恢复和布局。
 正式 desktop profile 已完成原生启动与侧栏加载检查；完整业务验收由 Hoya 完成。
 CI 每次发布重新执行类型检查、单元测试和构建，不能替代新 DSH 版本的实机验证。
 界面示例使用合成数据，不发布账户余额、凭据或会话日志。
