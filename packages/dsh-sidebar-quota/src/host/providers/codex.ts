@@ -1,6 +1,7 @@
 import type { CodexState } from '../../shared/types.ts'
 import type { CodexCredential } from '../credentials.ts'
 import { queryJson, QueryError, type Transport } from '../network.ts'
+import { setTimeout as delay } from 'node:timers/promises'
 export function parseCodexUsage(data: unknown): Pick<CodexState, 'fiveHourRemaining' | 'weeklyRemaining' | 'fiveHourResetAt' | 'weeklyResetAt'> {
   const result = { fiveHourRemaining: null, weeklyRemaining: null, fiveHourResetAt: null, weeklyResetAt: null } as Pick<CodexState, 'fiveHourRemaining' | 'weeklyRemaining' | 'fiveHourResetAt' | 'weeklyResetAt'>
   if (typeof data !== 'object' || !data) throw new QueryError('Codex 接口响应格式不兼容')
@@ -21,9 +22,19 @@ export class WhamUsageProvider implements CodexUsageProvider {
   private transport: Transport
   constructor(transport: Transport = fetch) { this.transport=transport }
   async read(credential: CodexCredential, signal?: AbortSignal) {
-    return parseCodexUsage(await queryJson('https://chatgpt.com/backend-api/wham/usage', {
-      Authorization: `Bearer ${credential.access}`,
-      ...(credential.accountId ? { 'ChatGPT-Account-Id': credential.accountId } : {}),
-    }, this.transport, signal))
+    // Two bounded 12-second attempts fit within the Client's 30-second budget.
+    for (let attempt = 0; ; attempt++) {
+      signal?.throwIfAborted()
+      try {
+        return parseCodexUsage(await queryJson('https://chatgpt.com/backend-api/wham/usage', {
+          Authorization: `Bearer ${credential.access}`,
+          Accept: 'application/json', 'Cache-Control': 'no-store',
+          ...(credential.accountId ? { 'ChatGPT-Account-Id': credential.accountId } : {}),
+        }, this.transport, signal))
+      } catch (error) {
+        if (attempt > 0 || signal?.aborted || !(error instanceof QueryError) || !error.retryable) throw error
+        await delay(350, undefined, { signal })
+      }
+    }
   }
 }

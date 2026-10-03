@@ -42,3 +42,49 @@ test('current DSH credential records and selected subscription account are reuse
   }:name==='loader'?{entries:()=>[{options:{name:'@deepseek-ai/dsh-llm-deepseek-api-key',config:{apiKeyEnv:'CUSTOM_DS'}}}]}:undefined}
   assert.equal(await apiKey(ctx,'deepseek'),'custom-fixture');assert.equal(await apiKey(ctx,'moonshot'),'moon-fixture');assert.equal((await codexCredential(ctx))?.access,'selected')
 })
+
+test('Codex retries one transient connection failure and returns only parsed quota',async()=>{
+  let calls=0
+  const transport=(async(_url,options)=>{
+    calls++;assert.equal(options?.redirect,'error');assert.equal(new Headers(options?.headers).get('accept'),'application/json')
+    if(calls===1)throw new TypeError('private request details',{cause:{code:'ECONNRESET'}})
+    return Response.json({rate_limit:{primary_window:window(18)}})
+  }) as Transport
+  const result=await new WhamUsageProvider(transport).read({access:'fixture-only'})
+  assert.equal(result.fiveHourRemaining,82);assert.equal(calls,2)
+  assert.ok(!JSON.stringify(result).includes('fixture-only'))
+})
+test('Codex stops after the second transient failure and redacts upstream details',async()=>{
+  let calls=0
+  const provider=new WhamUsageProvider((async()=>{calls++;throw new TypeError('private request details',{cause:{code:'ECONNRESET'}})}) as Transport)
+  await assert.rejects(provider.read({access:'fixture-only'}),error=>safeError(error)==='查询失败：网络不可用或连接中断')
+  assert.equal(calls,2)
+})
+test('Codex never retries authentication, rate-limit, TLS or malformed-response errors',async()=>{
+  for(const status of [401,403,429]){
+    let calls=0;const provider=new WhamUsageProvider((async()=>{calls++;return new Response('private body',{status})}) as Transport)
+    await assert.rejects(provider.read({access:'fixture-only'}));assert.equal(calls,1)
+  }
+  for(const result of ['CERT_HAS_EXPIRED','DEPTH_ZERO_SELF_SIGNED_CERT','UNABLE_TO_VERIFY_LEAF_SIGNATURE','json','schema']){
+    let calls=0;const provider=new WhamUsageProvider((async()=>{calls++
+      if(!['json','schema'].includes(result))throw new TypeError('private details',{cause:{code:result}})
+      return result==='json'?new Response('broken JSON'):Response.json({unexpected:true})
+    }) as Transport)
+    await assert.rejects(provider.read({access:'fixture-only'}));assert.equal(calls,1)
+  }
+})
+test('Codex retries a disconnected response body without calling it a format error',async()=>{
+  let calls=0
+  const provider=new WhamUsageProvider((async()=>{
+    if(++calls===1)return new Response(new ReadableStream({start(controller){controller.error(new TypeError('private body',{cause:{code:'UND_ERR_SOCKET'}}))}}))
+    return Response.json({rate_limit:{primary_window:window(18)}})
+  }) as Transport)
+  assert.equal((await provider.read({access:'fixture-only'})).fiveHourRemaining,82);assert.equal(calls,2)
+})
+test('Codex cancellation stops the retry delay and prevents another request',async()=>{
+  let calls=0;const abort=new AbortController()
+  const provider=new WhamUsageProvider((async()=>{calls++;throw new TypeError('connection reset',{cause:{code:'ECONNRESET'}})}) as Transport)
+  const pending=provider.read({access:'fixture-only'},abort.signal)
+  const timer=setTimeout(()=>abort.abort(),20)
+  try{await assert.rejects(pending,{name:'AbortError'});assert.equal(calls,1)}finally{clearTimeout(timer)}
+})
