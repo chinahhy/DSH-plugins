@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidebar-quota",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH 左侧栏 DeepSeek、Codex 与 MoonShot 额度和本机今日消费",
   "type": "module",
   "license": "MIT",
