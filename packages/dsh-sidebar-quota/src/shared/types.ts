@@ -18,6 +18,7 @@ export interface SidebarQuotaState {
 }
 export const ROUTE = '/dsh-sidebar-quota/state'
 export const REFRESH_ROUTE = '/dsh-sidebar-quota/refresh'
+export const REFRESH_HEADER = 'dsh-sidebar-refresh'
 export const PROVIDERS = ['deepseek','codex','moonshot'] as const
 export type ProviderId = typeof PROVIDERS[number]
 export function quotaLevel(value: number): 'good' | 'warning' | 'low' | 'critical' {

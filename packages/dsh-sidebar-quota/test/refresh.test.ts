@@ -5,6 +5,7 @@ import {once} from 'node:events'
 import {registerRoute} from '../src/host/routes.ts'
 import {createStore} from '../src/client/store.ts'
 import type {SidebarQuotaState} from '../src/shared/types.ts'
+import {REFRESH_HEADER} from '../src/shared/types.ts'
 
 const fixture=(updatedAt='2026-10-03T08:00:00.000Z'):SidebarQuotaState=>({
   updatedAt,
@@ -20,12 +21,15 @@ test('manual HTTP refresh rejects untrusted origins, invalid providers and repea
   const port=(server.address() as any).port,base=`http://127.0.0.1:${port}`
   const dispose=registerRoute({port,register:route=>{routes.set(route.path,route);return()=>{routes.delete(route.path)}}},
     {snapshot:()=>fixture(),refresh:async(id:string)=>{calls.push(id)}} as any)
-  const send=(path:string,method='POST',origin:string|undefined=base)=>fetch(base+path,{method,headers:origin?{Origin:origin}:{}})
+  const send=(path:string,method='POST',origin:string|undefined=base)=>fetch(base+path,{method,headers:{[REFRESH_HEADER]:'1',...(origin?{Origin:origin}:{})}})
   try {
     const path='/dsh-sidebar-quota/refresh?provider=deepseek'
     assert.equal((await send(path,'GET')).status,405)
     assert.equal((await send(path,'POST','https://untrusted.example')).status,403)
     assert.equal((await fetch(base+path,{method:'POST'})).status,403)
+    assert.equal((await send(path,'OPTIONS')).status,405)
+    for(const origin of ['', 'null', 'http://localhost:1'])assert.equal((await fetch(base+path,{method:'POST',headers:{[REFRESH_HEADER]:'1',Origin:origin}})).status,403)
+    assert.equal((await fetch(base+path,{method:'POST',headers:{[REFRESH_HEADER]:'1','Sec-Fetch-Site':'cross-site'}})).status,403)
     assert.equal((await send('/dsh-sidebar-quota/refresh?provider=unexpected')).status,400)
     assert.deepEqual(calls,[])
     const response=await send(path);assert.equal(response.status,200);assert.equal((await response.json()).deepseek.balance,18)
@@ -33,8 +37,12 @@ test('manual HTTP refresh rejects untrusted origins, invalid providers and repea
     const repeat=await send(path);assert.equal(repeat.status,429);assert.equal(repeat.headers.get('retry-after'),'3')
     assert.equal((await send('/dsh-sidebar-quota/refresh?provider=codex')).status,200)
     assert.deepEqual(calls,['deepseek','codex'])
+    // The real Desktop proxy forwards POSTs without Origin or Sec-Fetch-Site.
+    const native=await fetch(base+'/dsh-sidebar-quota/refresh?provider=moonshot',{method:'POST',headers:{[REFRESH_HEADER]:'1'}})
+    assert.equal(native.status,200)
+    assert.deepEqual(calls,['deepseek','codex','moonshot'])
     assert.equal((await fetch(base+'/dsh-sidebar-quota/state')).status,200)
-    assert.deepEqual(calls,['deepseek','codex'])
+    assert.deepEqual(calls,['deepseek','codex','moonshot'])
     dispose();assert.equal(routes.size,0)
   }finally{server.close();await once(server,'close')}
 })
@@ -42,7 +50,7 @@ test('manual HTTP refresh rejects untrusted origins, invalid providers and repea
 test('client refresh joins repeat clicks, preserves preferences and rejects an older state poll',async()=>{
   const nativeFetch=globalThis.fetch,store=createStore();let resolveResponse!:(response:Response)=>void,calls=0
   globalThis.fetch=(async(input,init)=>{
-    calls++;assert.equal(String(input),'/dsh-sidebar-quota/refresh?provider=deepseek');assert.equal(init?.method,'POST')
+    calls++;assert.equal(String(input),'/dsh-sidebar-quota/refresh?provider=deepseek');assert.equal(init?.method,'POST');assert.equal(new Headers(init?.headers).get(REFRESH_HEADER),'1')
     return new Promise<Response>(resolve=>{resolveResponse=resolve})
   }) as typeof fetch
   try {

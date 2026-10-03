@@ -4,12 +4,12 @@
       "name": "dsh-sidebar-quota",
       "title": "侧栏模型额度与消费",
       "directory": "packages/dsh-sidebar-quota",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dshVersions": [
         "0.2.0-rc.2"
       ],
       "description": "DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费，支持手动刷新与独立折叠。",
-      "releaseTag": "dsh-sidebar-quota-v0.1.2",
+      "releaseTag": "dsh-sidebar-quota-v0.1.3",
       "marketEntry": "chinahhy__DSH-plugins--packages-dsh-sidebar-quota.yml"
     }
   ]
