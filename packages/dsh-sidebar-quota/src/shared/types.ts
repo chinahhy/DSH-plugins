@@ -17,6 +17,9 @@ export interface SidebarQuotaState {
   codex: CodexState; moonshot: ApiState
 }
 export const ROUTE = '/dsh-sidebar-quota/state'
+export const REFRESH_ROUTE = '/dsh-sidebar-quota/refresh'
+export const PROVIDERS = ['deepseek','codex','moonshot'] as const
+export type ProviderId = typeof PROVIDERS[number]
 export function quotaLevel(value: number): 'good' | 'warning' | 'low' | 'critical' {
   return value >= 70 ? 'good' : value >= 40 ? 'warning' : value >= 20 ? 'low' : 'critical'
 }

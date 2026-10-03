@@ -32,3 +32,20 @@ test('HTTP trust fence rejects remote peers, cross-origin callers, DNS rebinding
   assert.equal(allowedRequest(req('127.0.0.1:3080','127.0.0.1','https://evil.example'),3080),false)
   assert.equal(allowedRequest(req('evil.example:3080'),3080),false)
 })
+test('manual DeepSeek refresh queries only its balance and joins concurrent upstream work',async()=>{
+  const home=await projectTemp('quota-manual-');let calls=0,release!:(response:Response)=>void
+  const transport=(async(url:any)=>{
+    assert.equal(url,'https://api.deepseek.com/user/balance');calls++
+    return new Promise<Response>(resolve=>{release=resolve})
+  }) as Transport
+  const monitor=new QuotaMonitor(ctx,home,transport)
+  try {
+    const first=monitor.refresh('deepseek'),second=monitor.refresh('deepseek')
+    await new Promise(resolve=>setImmediate(resolve))
+    assert.equal(calls,1)
+    release(Response.json({balance_infos:[{currency:'CNY',total_balance:'20'}]}))
+    await Promise.all([first,second])
+    assert.equal(monitor.snapshot().deepseek.balance,20)
+    assert.equal(monitor.snapshot().codex.updatedAt,null)
+  }finally{monitor.stop();await rm(home,{recursive:true,force:true})}
+})
