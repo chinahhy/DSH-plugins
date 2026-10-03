@@ -1,5 +1,5 @@
 import type { SidebarQuotaState,ProviderId } from '../shared/types.ts'
-import { ROUTE,REFRESH_ROUTE,PROVIDERS } from '../shared/types.ts'
+import { ROUTE,REFRESH_ROUTE,REFRESH_HEADER,PROVIDERS } from '../shared/types.ts'
 const COLLAPSE_KEY='dsh-sidebar-quota:collapsed:v1'
 type Flags=Record<ProviderId,boolean>
 const flags=():Flags=>({deepseek:false,codex:false,moonshot:false})
@@ -36,7 +36,7 @@ export function createStore() {
       if(snapshot.refreshing[id] || lifetime.signal.aborted)return
       set({refreshing:{...snapshot.refreshing,[id]:true},refreshErrors:{...snapshot.refreshErrors,[id]:undefined}})
       try {
-        const response=await fetch(`${REFRESH_ROUTE}?provider=${id}`,{method:'POST',cache:'no-store',signal:signal(30_000)})
+        const response=await fetch(`${REFRESH_ROUTE}?provider=${id}`,{method:'POST',headers:{[REFRESH_HEADER]:'1'},cache:'no-store',signal:signal(30_000)})
         if(response.status===429){set({refreshErrors:{...snapshot.refreshErrors,[id]:'请稍候 3 秒再刷新'}});return}
         if(!response.ok)throw new Error('refresh unavailable')
         const state=await response.json();if(!valid(state))throw new Error('incompatible state')

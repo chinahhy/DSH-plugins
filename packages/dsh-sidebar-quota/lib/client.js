@@ -30,6 +30,7 @@ var import_react4 = require("react");
 // src/shared/types.ts
 var ROUTE = "/dsh-sidebar-quota/state";
 var REFRESH_ROUTE = "/dsh-sidebar-quota/refresh";
+var REFRESH_HEADER = "dsh-sidebar-refresh";
 var PROVIDERS = ["deepseek", "codex", "moonshot"];
 function quotaLevel(value) {
   return value >= 70 ? "good" : value >= 40 ? "warning" : value >= 20 ? "low" : "critical";
@@ -81,7 +82,7 @@ function createStore() {
       if (snapshot.refreshing[id] || lifetime.signal.aborted) return;
       set({ refreshing: { ...snapshot.refreshing, [id]: true }, refreshErrors: { ...snapshot.refreshErrors, [id]: void 0 } });
       try {
-        const response = await fetch(`${REFRESH_ROUTE}?provider=${id}`, { method: "POST", cache: "no-store", signal: signal(3e4) });
+        const response = await fetch(`${REFRESH_ROUTE}?provider=${id}`, { method: "POST", headers: { [REFRESH_HEADER]: "1" }, cache: "no-store", signal: signal(3e4) });
         if (response.status === 429) {
           set({ refreshErrors: { ...snapshot.refreshErrors, [id]: "\u8BF7\u7A0D\u5019 3 \u79D2\u518D\u5237\u65B0" } });
           return;

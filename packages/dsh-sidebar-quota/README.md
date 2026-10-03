@@ -73,7 +73,8 @@ Codex quota 使用当前 ChatGPT `backend-api/wham/usage` endpoint，
 
 所有凭据、API 请求、日志解析和金额计算均在 Host。HTTP response 仅含数字、状态和安全提示。
 不返回 Key、access/refresh token、Cookie 或上游错误正文。外部请求有超时并拒绝重定向。
-状态读取与刷新路由仅接受本机 loopback、合法 Host 和同源请求；刷新必须为带同源 Origin 的 POST，
+状态读取与刷新路由仅接受本机 loopback、合法 Host 和可信调用；存在 Origin 时严格校验，
+兼容官方桌面代理移除 Origin 的请求。刷新要求 POST 和专用请求头，拒绝跨域请求及预检，
 只允许三家预设 Provider。当前版本不支持远程 LAN 页面读额度。
 
 安装后仅新增 `$DSH_HOME/storages/dsh-sidebar-quota/` 中的非敏感价格历史缓存。
