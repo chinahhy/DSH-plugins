@@ -49,13 +49,25 @@ function savedCollapse() {
 }
 function createStore() {
   let snapshot = { state: null, error: null, collapsed: savedCollapse(), refreshing: flags(), refreshErrors: {} };
+  const failedAt = {};
   const listeners = /* @__PURE__ */ new Set(), lifetime = new AbortController();
   const set = (value) => {
     snapshot = { ...snapshot, ...value };
     for (const listener of listeners) listener();
   };
   const accept = (state) => {
-    if (!snapshot.state || Date.parse(state.updatedAt) >= Date.parse(snapshot.state.updatedAt)) set({ state, error: null });
+    if (snapshot.state && Date.parse(state.updatedAt) < Date.parse(snapshot.state.updatedAt)) return false;
+    const refreshErrors = { ...snapshot.refreshErrors }, projected = { ...state };
+    for (const id of PROVIDERS) {
+      if (!refreshErrors[id]) continue;
+      const value = state[id], previous = failedAt[id];
+      if (!value.error && !value.stale && value.updatedAt && (!previous || Date.parse(value.updatedAt) > Date.parse(previous))) {
+        delete refreshErrors[id];
+        delete failedAt[id];
+      } else if (previous !== void 0 && !value.error) projected[id] = staleProvider(value, id);
+    }
+    set({ state: projected, error: null, refreshErrors });
+    return true;
   };
   const signal = (timeout = 15e3) => AbortSignal.any([lifetime.signal, AbortSignal.timeout(timeout)]);
   return {
@@ -80,6 +92,12 @@ function createStore() {
     },
     refresh: async (id) => {
       if (snapshot.refreshing[id] || lifetime.signal.aborted) return;
+      const previousSuccess = snapshot.state?.[id].updatedAt ?? null;
+      const fail = (message) => {
+        failedAt[id] = previousSuccess;
+        set({ refreshErrors: { ...snapshot.refreshErrors, [id]: message } });
+      };
+      delete failedAt[id];
       set({ refreshing: { ...snapshot.refreshing, [id]: true }, refreshErrors: { ...snapshot.refreshErrors, [id]: void 0 } });
       try {
         const response = await fetch(`${REFRESH_ROUTE}?provider=${id}`, { method: "POST", headers: { [REFRESH_HEADER]: "1" }, cache: "no-store", signal: signal(3e4) });
@@ -91,12 +109,20 @@ function createStore() {
         const state = await response.json();
         if (!valid(state)) throw new Error("incompatible state");
         if (lifetime.signal.aborted) return;
-        accept(state);
-        set({ refreshErrors: { ...snapshot.refreshErrors, [id]: state[id].error } });
+        if (accept(state)) {
+          if (state[id].error) fail(state[id].error);
+          else {
+            delete failedAt[id];
+            set({ refreshErrors: { ...snapshot.refreshErrors, [id]: void 0 } });
+          }
+        }
       } catch {
         if (lifetime.signal.aborted) return;
+        const current = snapshot.state?.[id];
+        if (current && !current.error && !current.stale && current.updatedAt && (!previousSuccess || Date.parse(current.updatedAt) > Date.parse(previousSuccess))) return;
         const state = snapshot.state ? { ...snapshot.state, [id]: staleProvider(snapshot.state[id], id) } : null;
-        set({ state, refreshErrors: { ...snapshot.refreshErrors, [id]: "\u5237\u65B0\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5" } });
+        set({ state });
+        fail("\u5237\u65B0\u5931\u8D25\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5");
       } finally {
         if (!lifetime.signal.aborted) set({ refreshing: { ...snapshot.refreshing, [id]: false } });
       }

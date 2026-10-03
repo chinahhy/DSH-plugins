@@ -81,3 +81,56 @@ test('failed manual Codex refresh hides old percentages and keeps other provider
     assert.ok(!JSON.stringify(snapshot).includes('untrusted'))
   }finally{globalThis.fetch=nativeFetch;store.stop()}
 })
+
+test('automatic recovery clears manual error only after a newer successful provider query',async()=>{
+  const nativeFetch=globalThis.fetch,store=createStore();const initial=fixture();store.set({state:initial})
+  globalThis.fetch=async()=>{throw new Error('connection interrupted')}
+  try{
+    await store.refresh('codex')
+    // A usage scan can advance the overall snapshot without fresh Codex data.
+    const oldQuota=fixture('2026-10-03T08:00:20.000Z');oldQuota.codex.updatedAt=initial.codex.updatedAt
+    store.accept(oldQuota)
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,null)
+    assert.ok(store.getSnapshot().refreshErrors.codex)
+    const recovered=fixture('2026-10-03T08:01:00.000Z');store.accept(recovered)
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,82)
+    assert.equal(store.getSnapshot().refreshErrors.codex,undefined)
+    store.accept(oldQuota)
+    assert.equal(store.getSnapshot().state?.codex.updatedAt,recovered.codex.updatedAt)
+  }finally{globalThis.fetch=nativeFetch;store.stop()}
+})
+test('automatic recovery from an upstream manual error does not retain the error icon',async()=>{
+  const nativeFetch=globalThis.fetch,store=createStore();store.set({state:fixture()})
+  const failed=fixture('2026-10-03T08:00:20.000Z');failed.codex={...failed.codex,updatedAt:null,stale:true,fiveHourRemaining:null,weeklyRemaining:null,error:'查询失败：请求超时'}
+  globalThis.fetch=async()=>Response.json(failed)
+  try{
+    await store.refresh('codex');assert.equal(store.getSnapshot().refreshErrors.codex,'查询失败：请求超时')
+    store.accept(fixture('2026-10-03T08:01:00.000Z'))
+    assert.equal(store.getSnapshot().refreshErrors.codex,undefined)
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,82)
+  }finally{globalThis.fetch=nativeFetch;store.stop()}
+})
+test('a late failed manual request cannot erase newer quota delivered by a poll',async()=>{
+  const nativeFetch=globalThis.fetch,store=createStore();store.set({state:fixture()});let rejectRequest!:(error:Error)=>void
+  globalThis.fetch=async()=>new Promise<Response>((_resolve,reject)=>{rejectRequest=reject})
+  try{
+    const pending=store.refresh('codex');const recovered=fixture('2026-10-03T08:01:00.000Z');store.accept(recovered)
+    rejectRequest(new Error('old request failure'));await pending
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,82)
+    assert.equal(store.getSnapshot().refreshErrors.codex,undefined)
+    assert.equal(store.getSnapshot().refreshing.codex,false)
+  }finally{globalThis.fetch=nativeFetch;store.stop()}
+})
+
+test('manual click cooldown does not invalidate still-fresh Codex quota',async()=>{
+  const nativeFetch=globalThis.fetch,store=createStore();const initial=fixture();store.set({state:initial})
+  globalThis.fetch=async()=>new Response(null,{status:429})
+  try{
+    await store.refresh('codex')
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,82)
+    assert.equal(store.getSnapshot().refreshErrors.codex,'请稍候 3 秒再刷新')
+    store.accept(initial)
+    assert.equal(store.getSnapshot().state?.codex.fiveHourRemaining,82)
+    assert.equal(store.getSnapshot().refreshErrors.codex,undefined)
+  }finally{globalThis.fetch=nativeFetch;store.stop()}
+})

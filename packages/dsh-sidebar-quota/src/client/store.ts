@@ -15,11 +15,21 @@ export interface Snapshot {
 }
 export function createStore() {
   let snapshot:Snapshot={state:null,error:null,collapsed:savedCollapse(),refreshing:flags(),refreshErrors:{}}
+  const failedAt:Partial<Record<ProviderId,string|null>>={}
   const listeners=new Set<()=>void>(),lifetime=new AbortController()
   const set=(value:Partial<Snapshot>)=>{snapshot={...snapshot,...value};for(const listener of listeners)listener()}
   const accept=(state:SidebarQuotaState)=>{
     // An older poll must not replace a newer manual refresh response.
-    if(!snapshot.state || Date.parse(state.updatedAt)>=Date.parse(snapshot.state.updatedAt))set({state,error:null})
+    if(snapshot.state && Date.parse(state.updatedAt)<Date.parse(snapshot.state.updatedAt))return false
+    const refreshErrors={...snapshot.refreshErrors},projected={...state}
+    for(const id of PROVIDERS){
+      if(!refreshErrors[id])continue
+      const value=state[id],previous=failedAt[id]
+      if(!value.error && !value.stale && value.updatedAt && (!previous || Date.parse(value.updatedAt)>Date.parse(previous))){
+        delete refreshErrors[id];delete failedAt[id]
+      }else if(previous!==undefined && !value.error)projected[id]=staleProvider(value,id)
+    }
+    set({state:projected,error:null,refreshErrors});return true
   }
   const signal=(timeout=15_000)=>AbortSignal.any([lifetime.signal,AbortSignal.timeout(timeout)])
   return {
@@ -34,6 +44,9 @@ export function createStore() {
     },
     refresh:async(id:ProviderId)=>{
       if(snapshot.refreshing[id] || lifetime.signal.aborted)return
+      const previousSuccess=snapshot.state?.[id].updatedAt??null
+      const fail=(message:string)=>{failedAt[id]=previousSuccess;set({refreshErrors:{...snapshot.refreshErrors,[id]:message}})}
+      delete failedAt[id]
       set({refreshing:{...snapshot.refreshing,[id]:true},refreshErrors:{...snapshot.refreshErrors,[id]:undefined}})
       try {
         const response=await fetch(`${REFRESH_ROUTE}?provider=${id}`,{method:'POST',headers:{[REFRESH_HEADER]:'1'},cache:'no-store',signal:signal(30_000)})
@@ -41,12 +54,17 @@ export function createStore() {
         if(!response.ok)throw new Error('refresh unavailable')
         const state=await response.json();if(!valid(state))throw new Error('incompatible state')
         if(lifetime.signal.aborted)return
-        accept(state)
-        set({refreshErrors:{...snapshot.refreshErrors,[id]:state[id].error}})
+        if(accept(state)){
+          if(state[id].error)fail(state[id].error)
+          else {delete failedAt[id];set({refreshErrors:{...snapshot.refreshErrors,[id]:undefined}})}
+        }
       }catch{
         if(lifetime.signal.aborted)return
+        const current=snapshot.state?.[id]
+        // A delayed failed request cannot erase a successful newer poll.
+        if(current && !current.error && !current.stale && current.updatedAt && (!previousSuccess || Date.parse(current.updatedAt)>Date.parse(previousSuccess)))return
         const state=snapshot.state?{...snapshot.state,[id]:staleProvider(snapshot.state[id],id)}:null
-        set({state,refreshErrors:{...snapshot.refreshErrors,[id]:'刷新失败，请稍后重试'}})
+        set({state});fail('刷新失败，请稍后重试')
       }finally{if(!lifetime.signal.aborted)set({refreshing:{...snapshot.refreshing,[id]:false}})}
     },
   }
