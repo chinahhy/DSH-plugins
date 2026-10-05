@@ -13,8 +13,8 @@
 
 ## 版本需求
 
-目前侧栏插件只承诺官方 **DSH 0.2.0-rc.2**，Node.js **24+**；macOS 官方桌面端使用 desktop profile。
-web profile 使用相同 Host/Client 接口。包的 engines.dsh 和 dsh.compatibility 均限定实测版本。
+目前插件只承诺官方 **DSH 0.2.0-rc.2**，Node.js **24+**；macOS 官方桌面端使用 desktop profile。
+侧栏插件可用 web profile；iOS 远程插件仅面向 macOS Apple Silicon Desktop。包的 engines.dsh 和 dsh.compatibility 均限定实测版本。
 新版 DSH 必须核对接口并实机验证后再扩大兼容范围。CI 绿灯不能代替实机兼容检查。
 详细记录见 [兼容性记录](docs/compatibility.md)。
 
@@ -24,7 +24,7 @@ web profile 使用相同 Host/Client 接口。包的 engines.dsh 和 dsh.compati
 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)。首次收录需要维护者合并条目申请。
 目录支持 monorepo 子目录；每个自制插件单独上架，不把整个仓库作为聚合插件安装。
 
-1. 条目收录后，在 DSH 插件市场找到 dsh-sidebar-quota 并安装。
+1. 条目收录后，在 DSH 插件市场找到所需插件并安装。
 2. 新版通过本仓库 Actions 发布后，在 DSH 中检查更新并点击“更新”，按提示刷新或重启。
 3. 已经以本地 link/file 装过的版本，需要**一次性切换到 GitHub 安装源**；本地链接不会自动跟随 GitHub。
 
@@ -77,6 +77,13 @@ node scripts/check.mjs
 
 新增插件：添加独立包、plugins.json 条目、测试和兼容性记录，再按 [贡献说明](CONTRIBUTING.md) 发布与申请收录。
 只保存自制插件和必要公开证据，不提交 DSH 凭据、账户响应、聊天日志或本机设置。
+
+## 云端开发
+
+日常开发可在 Codex Cloud 进行，电脑休眠也能继续。选择本仓库准备仅自己可用的环境，使用 Node.js 24+，执行 node scripts/cloud-setup.mjs 和既有检查脚本。
+仓库自带 [发布 Skill](.agents/skills/dsh-plugin-release/SKILL.md) 与 [云端开发说明](docs/cloud-development.md)，不依赖个人电脑目录。
+源码和发布在云端完成；正式 DSH 安装、真实账号查询及 macOS 原生验收仍在用户电脑执行。云端测试通过不会自动扩大兼容声明。
+插件凭据、本机 .dsh 和真实会话不上传。已完成工作提交并推送 GitHub，云端聊天保存不能替代 Git。
 
 ## 许可证
 
