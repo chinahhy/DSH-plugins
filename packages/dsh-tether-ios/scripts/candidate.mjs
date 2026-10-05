@@ -39,9 +39,9 @@ for (const pkg of metadata.packages.sort((a, b) => a.name.localeCompare(b.name))
 await writeFile(root + 'bin/darwin-arm64/THIRD_PARTY_LICENSES.txt', licenses.join('\n\n---\n\n'))
 await mkdir(out, { recursive: true })
 const packed = JSON.parse(run('npm', ['pack', '--json', '--ignore-scripts', '--pack-destination', out]))[0]
-const required = ['bin/darwin-arm64/tether-host', 'bin/darwin-arm64/SHA256SUMS', 'bin/darwin-arm64/THIRD_PARTY_LICENSES.txt', 'lib/index.js', 'lib/client.js', 'cordis.patch.yml']
+const required = ['bin/darwin-arm64/tether-host', 'bin/darwin-arm64/SHA256SUMS', 'bin/darwin-arm64/THIRD_PARTY_LICENSES.txt', 'lib/index.js', 'lib/client.js', 'cordis.patch.yml', 'docs/api-evidence.json', 'docs/upstream-diff.md']
 for (const file of required) if (!packed.files.some(entry => entry.path === file)) throw new Error('Missing packed file: ' + file)
-for (const file of packed.files) if (!/^(lib\/|bin\/darwin-arm64\/|package.json$|cordis.patch.yml$|README.md$|LICENSE$|THIRD_PARTY_NOTICES.md$)/.test(file.path)) throw new Error('Unexpected packed file: ' + file.path)
+for (const file of packed.files) if (!/^(lib\/|docs\/|bin\/darwin-arm64\/|package.json$|cordis.patch.yml$|README.md$|LICENSE$|THIRD_PARTY_NOTICES.md$)/.test(file.path)) throw new Error('Unexpected packed file: ' + file.path)
 const hash = createHash('sha256').update(await readFile(join(out, packed.filename))).digest('hex')
 await writeFile(join(out, 'SHA256SUMS'), `${hash}  ${packed.filename}\n`)
 await copyFile(root + 'docs/api-evidence.json', join(out, 'api-evidence.json'))
@@ -50,7 +50,7 @@ await writeFile(join(out, 'candidate.json'), JSON.stringify({
   sourceCommit: process.env.GITHUB_SHA, artifact: packed.filename, sha256: hash,
   target: 'darwin-arm64', dshTarget: '0.2.0-rc.2',
   iosSource: '0c10375d5d1931bd8603f203c494e621dd5040a6',
-  checks: ['node tests', 'cargo test --locked', 'arm64 Mach-O', 'real DSH API lifecycle', 'parent stdin EOF'],
+  checks: ['node tests', 'cargo test --release --locked', 'real iroh pairing/proxy/reconnect/revocation', 'arm64 Mach-O', 'real DSH API lifecycle', 'parent stdin EOF'],
   realDeviceValidated: false, published: false,
 }, null, 2) + '\n')
 console.log(`Candidate archive verified: ${packed.filename}`)
