@@ -35,6 +35,13 @@ jobs:
       - name: Unit tests and prebuilt JavaScript
         working-directory: packages/dsh-tether-ios
         run: npm run check
+      - name: Normalize extracted workspace lockfile
+        run: cargo metadata --manifest-path packages/dsh-tether-ios/native/Cargo.toml --format-version 1 > tmp/cargo-metadata.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: normalized-tether-lockfile
+          path: packages/dsh-tether-ios/native/Cargo.lock
+          retention-days: 3
       - name: Build and test locked native host
         working-directory: packages/dsh-tether-ios
         run: npm run build:sidecar
