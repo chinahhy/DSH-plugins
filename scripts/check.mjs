@@ -1,5 +1,6 @@
 import {registry,validatePackage,run,root} from './library.mjs'
 import {join} from 'node:path'
+run('node',['--test','scripts/release.test.mjs'])
 const {plugins}=await registry()
 for(const entry of plugins){
   await validatePackage(entry)

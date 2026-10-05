@@ -29,7 +29,7 @@ export function version(value){
 export const hash=async(path)=>createHash('sha256').update(await readFile(path)).digest('hex')
 export async function copyPackage(source,target){
   await rm(target,{recursive:true,force:true});await mkdir(target,{recursive:true})
-  await cp(source,target,{recursive:true,filter:path=>!['node_modules','.cache','.git','build'].includes(basename(path)) && !path.endsWith('.tgz')})
+  await cp(source,target,{recursive:true,filter:path=>!['node_modules','.cache','.git','build','target','tmp'].includes(basename(path)) && !path.endsWith('.tgz')})
 }
 export async function validatePackage(entry){
   const pkg=await json(join(root,entry.directory,'package.json'))

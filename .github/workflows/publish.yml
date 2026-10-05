@@ -26,9 +26,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 40
     outputs:
       base_main: ${{ steps.base.outputs.sha }}
     steps:
@@ -45,19 +45,25 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
+      - name: Prepare controlled build paths
+        run: mkdir -p tmp .cache/cargo
       - name: Build and validate selected plugin
+        id: build
         env:
           PLUGIN: ${{ inputs.plugin }}
           VERSION: ${{ inputs.version }}
           BASE_MAIN: ${{ steps.base.outputs.sha }}
+          CARGO_HOME: ${{ github.workspace }}/.cache/cargo
+          CARGO_TARGET_DIR: ${{ github.workspace }}/build/native-target
+          TMPDIR: ${{ github.workspace }}/tmp
         run: node scripts/prepare-release.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: runner.os == 'Linux'
+        if: steps.build.outputs.payload == 'true'
         with:
           name: publish-payload
           path: build/publish/
           retention-days: 7
-          include-hidden-files: false
+          include-hidden-files: true
           if-no-files-found: error
   publish:
     needs: build
