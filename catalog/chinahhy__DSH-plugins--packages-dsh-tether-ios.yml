@@ -1,0 +1,6 @@
+# DRAFT ONLY — do not submit before native acceptance and release design review.
+# Native binary lives in CI candidate archive; GitHub source is not installable.
+name: dsh-tether-ios
+author: chinahhy
+url: https://github.com/chinahhy/DSH-plugins/tree/feature/dsh-tether-ios/packages/dsh-tether-ios
+description: macOS Apple Silicon companion for iOS; candidate, not published.

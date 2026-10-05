@@ -1,0 +1,69 @@
+{
+  "commit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+  "tag": "dsh-v0.2.0-rc.2",
+  "checks": [
+    {
+      "path": "packages/host/webserver/src/index.ts",
+      "sha256": "6baa08f1e7cdf86f315d80c935449ffce04640a1f6303a87cad6acd10f9d00cc",
+      "checks": [
+        "register(route: WebRoute)",
+        "tapIndex(transform:",
+        "get port(): number",
+        "get host():"
+      ]
+    },
+    {
+      "path": "packages/client/connection/src/rpc-host.ts",
+      "sha256": "bf305c21998f65d605c22ca01646a7ce277ea4e298cc34abaf13832f789f01c3",
+      "checks": [
+        "authenticatedUrl(baseUrl: string)",
+        "requestRejection(request:"
+      ]
+    },
+    {
+      "path": "packages/boot/app-boot/src/index.ts",
+      "sha256": "5460685d13cb1e281d01be4332854d0f493cf395b88c61bba9dc69910045ef9c",
+      "checks": [
+        "ctx.provide('dshHomePath', dshHomePath)"
+      ]
+    },
+    {
+      "path": "packages/interaction/user-approval/src/types.ts",
+      "sha256": "4413da55040e100e5700b5b89dccf387e08275587ac21876cba8cbab2df34037",
+      "checks": [
+        "readonly callId?:",
+        "'approval/request'(",
+        "next: () => Promise<ApprovalOutcome>"
+      ]
+    },
+    {
+      "path": "packages/bundle/web-app/cordis.patch.yml",
+      "sha256": "df7653ee4c324dca706034631926c86f13a2cf17c280cc018f8c070a0aaad19e",
+      "checks": [
+        "@deepseek-ai/dsh-host-directory-picker-auto"
+      ]
+    },
+    {
+      "path": "apps/desktop/src/project-manager.ts",
+      "sha256": "2ad0aacba5377e82c1ed2bd70f52003ffdf91fa0e287dd3d51cfd896f2249748",
+      "checks": [
+        "initProfile(projectDir, WEB_PROFILE.bundles)"
+      ]
+    },
+    {
+      "path": "packages/client/ui-sidebar/src/client/contract/slots.ts",
+      "sha256": "569396d1337d548ce6975c27ccc7282429c0e2ea57fdb3994ba162e013178d2d",
+      "checks": [
+        "'sidebar.footer.action': { kind: 'list'"
+      ]
+    },
+    {
+      "path": "packages/boot/app-boot/src/profile.ts",
+      "sha256": "30a883b090c4489b14371d947113d532ab9484d4e0f79c7a4fcddd066e24b6ab",
+      "checks": [
+        "dsh.profile",
+        "bundlePatchFiles"
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@
 | 插件 | 当前版本 | 已验证 DSH | 功能 | 发布 |
 | --- | --- | --- | --- | --- |
 | [dsh-sidebar-quota](packages/dsh-sidebar-quota) | 0.1.4 | 0.2.0-rc.2 | DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费，支持手动刷新与独立折叠。 | [dsh-sidebar-quota-v0.1.4](https://github.com/chinahhy/DSH-plugins/releases/tag/dsh-sidebar-quota-v0.1.4) |
+| [dsh-tether-ios](packages/dsh-tether-ios) | 0.1.0 | 待真机验证（目标 0.2.0-rc.2） | macOS arm64 + iOS；仅完成源码/API/CI 验证后交付候选包，真机待验收。 | 首次 Actions 发布待执行 |
 
 列表由 plugins.json 生成；发布 Actions 自动更新版本，不手工维护两份台账。
 

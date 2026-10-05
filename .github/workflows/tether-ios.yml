@@ -1,0 +1,61 @@
+name: Build iOS companion candidate
+on:
+  push:
+    branches: [feature/dsh-tether-ios]
+  pull_request:
+    paths: ['packages/dsh-tether-ios/**', '.github/workflows/tether-ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tether-candidate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  mac-arm64:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      npm_config_cache: ${{ github.workspace }}/.cache/npm
+      CARGO_HOME: ${{ github.workspace }}/.cache/cargo
+      CARGO_TARGET_DIR: ${{ github.workspace }}/packages/dsh-tether-ios/native/target
+      TMPDIR: ${{ github.workspace }}/tmp
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Prepare controlled paths and verify architecture
+        run: |
+          mkdir -p tmp .cache/cargo build/tether-candidate
+          test "$(uname -m)" = arm64
+          rustc --version
+          cargo --version
+      - name: Unit tests and prebuilt JavaScript
+        working-directory: packages/dsh-tether-ios
+        run: npm run check
+      - name: Build and test locked native host
+        working-directory: packages/dsh-tether-ios
+        run: npm run build:sidecar
+      - name: Validate native package
+        working-directory: packages/dsh-tether-ios
+        run: npm run verify:artifact
+      - name: Install only version-pinned API test dependencies inside CI
+        working-directory: packages/dsh-tether-ios
+        run: |
+          mkdir -p tmp/api
+          printf '{"private":true,"type":"module"}\n' > tmp/api/package.json
+          npm install --prefix tmp/api --ignore-scripts --no-audit --no-fund --save-exact @deepseek-ai/cordis@4.0.4 @deepseek-ai/dsh-host-webserver@0.2.0-rc.2 @deepseek-ai/dsh-client-connection@0.2.0-rc.2
+      - name: Actual DSH API lifecycle and parent-exit verification
+        working-directory: packages/dsh-tether-ios
+        run: node test/ci-runtime.mjs
+      - name: License inventory and controlled candidate archive
+        working-directory: packages/dsh-tether-ios
+        run: node scripts/candidate.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dsh-tether-ios-darwin-arm64-${{ github.sha }}
+          path: build/tether-candidate/
+          if-no-files-found: error
+          retention-days: 14

@@ -2,6 +2,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {root,plugin,version,json,save,run,capture,copyPackage,hash} from './library.mjs'
 const entry=await plugin(process.env.PLUGIN)
+if(entry.releaseReady===false)throw new Error('Plugin awaits real-device validation; publishing is disabled')
 const next=version(process.env.VERSION)
 const directory=join(root,entry.directory)
 run('npm',['version',next,'--no-git-tag-version','--ignore-scripts','--allow-same-version'],{cwd:directory})

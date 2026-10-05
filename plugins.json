@@ -11,6 +11,21 @@
       "description": "DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费，支持手动刷新与独立折叠。",
       "releaseTag": "dsh-sidebar-quota-v0.1.4",
       "marketEntry": "chinahhy__DSH-plugins--packages-dsh-sidebar-quota.yml"
+    },
+    {
+      "name": "dsh-tether-ios",
+      "title": "iOS 远程连接",
+      "directory": "packages/dsh-tether-ios",
+      "version": "0.1.0",
+      "dshVersions": [],
+      "targetDshVersions": [
+        "0.2.0-rc.2"
+      ],
+      "validation": "pending-device",
+      "releaseReady": false,
+      "description": "macOS arm64 + iOS；仅完成源码/API/CI 验证后交付候选包，真机待验收。",
+      "releaseTag": null,
+      "marketEntry": "chinahhy__DSH-plugins--packages-dsh-tether-ios.yml"
     }
   ]
 }

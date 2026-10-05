@@ -8,3 +8,7 @@ package.json 的 engines.dsh 与 dsh.compatibility 均限定 0.2.0-rc.2。
 自动发布只验证代码和包结构；扩大 DSH 兼容范围必须先核对对应版本接口并记录实机检查，不通过放宽版本声明消除兼容报错。
 Codex wham/usage 属于未公开稳定的上游接口；上游变动可能需要插件更新。
 侧栏额度每 5 分钟自动查询，订阅快捷额度存在独立查询及缓存周期；持续使用时不同时间的快照可能不一致。不能将两个界面的瞬时相等代替同一账号、同一响应的数值核验。
+
+## dsh-tether-ios 0.1.0 candidate
+
+Target is exactly 0.2.0-rc.2; pinned official source/API evidence is under packages/dsh-tether-ios/docs. Native Desktop and iOS physical-device acceptance is pending. `dshVersions` is empty, `dshReleases` has no compatible entry, and `releaseReady=false` blocks the publish script. CI service/transport checks are reported separately from product compatibility.

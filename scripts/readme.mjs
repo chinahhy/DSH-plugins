@@ -2,7 +2,7 @@ import {readFile,writeFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {registry,root} from './library.mjs'
 const {plugins}=await registry()
-const rows=plugins.map(p=>`| [${p.name}](${p.directory}) | ${p.version} | ${p.dshVersions.join('、')} | ${p.description} | ${p.releaseTag ? `[${p.releaseTag}](https://github.com/chinahhy/DSH-plugins/releases/tag/${p.releaseTag})` : '首次 Actions 发布待执行'} |`).join('\n')
+const rows=plugins.map(p=>`| [${p.name}](${p.directory}) | ${p.version} | ${p.dshVersions.length ? p.dshVersions.join('、') : '待真机验证（目标 '+p.targetDshVersions.join('、')+'）'} | ${p.description} | ${p.releaseTag ? `[${p.releaseTag}](https://github.com/chinahhy/DSH-plugins/releases/tag/${p.releaseTag})` : '首次 Actions 发布待执行'} |`).join('\n')
 const text=`# Hoya 的 DSH 插件库
 
 自用 DeepSeek Harness 插件源码与发布仓库。每个插件独立维护版本、兼容声明、测试和安装入口。
