@@ -23,7 +23,7 @@
       "validation": "physical-basic-and-cellular",
       "releaseReady": true,
       "description": "在 iPhone 上远程操作 macOS Apple Silicon 的 DSH Desktop；支持配对、审批通知和设备撤销。",
-      "releaseTag": null,
+      "releaseTag": "dsh-tether-ios-v0.1.0",
       "marketEntry": "chinahhy__DSH-plugins--packages-dsh-tether-ios.yml",
       "nativeTarget": "darwin-arm64"
     }
