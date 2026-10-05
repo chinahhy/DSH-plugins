@@ -3,8 +3,8 @@ import {join} from 'node:path'
 run('node',['--test','scripts/release.test.mjs'])
 const {plugins}=await registry()
 for(const entry of plugins){
-  await validatePackage(entry)
-  run('npm',['ci','--prefix',entry.directory,'--ignore-scripts','--cache',join(root,'.cache/npm')])
+  const pkg=await validatePackage(entry)
+  if(Object.keys(pkg.devDependencies ?? {}).length)run('npm',['ci','--prefix',entry.directory,'--ignore-scripts','--cache',join(root,'.cache/npm')])
   run('npm',['run','check','--prefix',entry.directory])
   await validatePackage(entry)
 }

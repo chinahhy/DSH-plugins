@@ -34,10 +34,12 @@ export async function copyPackage(source,target){
 export async function validatePackage(entry){
   const pkg=await json(join(root,entry.directory,'package.json'))
   if(pkg.name!==entry.name || pkg.version!==entry.version)throw new Error('Registry and package identity/version differ')
-  const required=entry.dshVersions
+  const pending=entry.validation==='pending-device' && entry.releaseReady===false
+  const required=pending ? entry.targetDshVersions : entry.dshVersions
   if(!Array.isArray(required)||required.length===0)throw new Error('Missing tested DSH versions')
   if(pkg.engines?.dsh!==required.join(' || ') || pkg.dsh?.compatibility?.dsh!==required.join(' || '))throw new Error('DSH version declarations differ')
-  for(const v of required)if(pkg.dsh.compatibility.dshReleases?.[v]!=='compatible')throw new Error('Missing tested compatibility declaration')
+  if(pending && (entry.dshVersions.length || Object.keys(pkg.dsh.compatibility.dshReleases ?? {}).length))throw new Error('Unverified plugin must not claim tested compatibility')
+  for(const v of pending ? [] : required)if(pkg.dsh.compatibility.dshReleases?.[v]!=='compatible')throw new Error('Missing tested compatibility declaration')
   if(pkg.dsh?.bundle?.patch!=='./cordis.patch.yml')throw new Error('Missing bundle patch')
   if(pkg.scripts?.prepare || pkg.scripts?.install || pkg.scripts?.postinstall)throw new Error('Prebuilt plugins must not run install scripts')
   if(Object.keys(pkg.dependencies ?? {}).length)throw new Error('Runtime dependencies must be bundled or explicitly reviewed')
