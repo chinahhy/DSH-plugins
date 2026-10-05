@@ -9,6 +9,10 @@ package.json 的 engines.dsh 与 dsh.compatibility 均限定 0.2.0-rc.2。
 Codex wham/usage 属于未公开稳定的上游接口；上游变动可能需要插件更新。
 侧栏额度每 5 分钟自动查询，订阅快捷额度存在独立查询及缓存周期；持续使用时不同时间的快照可能不一致。不能将两个界面的瞬时相等代替同一账号、同一响应的数值核验。
 
-## dsh-tether-ios 0.1.0 candidate
+## dsh-tether-ios 0.1.0
 
-Target is exactly 0.2.0-rc.2; pinned official source/API evidence is under packages/dsh-tether-ios/docs. Native Desktop and iOS physical-device acceptance is pending. `dshVersions` is empty, `dshReleases` has no compatible entry, and `releaseReady=false` blocks the publish script. CI service/transport checks are reported separately from product compatibility.
+2026-10-05：精确版本源码/API、60 项仓库 JavaScript 测试、17 项 Rust 测试、真实 DSH 服务集成和 iroh 通信检查通过。
+Mac mini M4 原生 Desktop 0.2.0-rc.2 安装、面板、退出/重启及受控数据路径已验证；维护者确认 iPhone 正常使用，并正在户外通过蜂窝网络连接家中 DSH。
+
+仅声明该 DSH 版本和 macOS arm64 + iOS arm64。蜂窝使用成功不等于已经识别直连或 relay 路径；强制 relay 回退、睡眠恢复及完整审批/撤销实机矩阵仍待单独核验。
+运行时代码与实机验收提交 848416a 一致；发布仅增加打包与版本声明。完整边界见 packages/dsh-tether-ios/docs/device-validation.json。

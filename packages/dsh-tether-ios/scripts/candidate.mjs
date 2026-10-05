@@ -51,6 +51,8 @@ await writeFile(join(out, 'candidate.json'), JSON.stringify({
   target: 'darwin-arm64', dshTarget: '0.2.0-rc.2',
   iosSource: '0c10375d5d1931bd8603f203c494e621dd5040a6',
   checks: ['node tests', 'cargo test --release --locked', 'real iroh pairing/proxy/reconnect/revocation', 'arm64 Mach-O', 'real DSH API lifecycle', 'parent stdin EOF'],
-  realDeviceValidated: false, published: false,
+  realDeviceValidated: true,
+  deviceValidation: JSON.parse(await readFile(root + 'docs/device-validation.json', 'utf8')),
+  published: false,
 }, null, 2) + '\n')
 console.log(`Candidate archive verified: ${packed.filename}`)

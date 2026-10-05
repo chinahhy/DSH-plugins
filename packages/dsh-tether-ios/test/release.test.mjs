@@ -1,15 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 import { readFile } from 'node:fs/promises'
-const root = fileURLToPath(new URL('../../../', import.meta.url))
-test('pending-device package cannot invoke release preparation', async () => {
-  const result = spawnSync(process.execPath, [root + 'scripts/prepare-release.mjs'], {
-    cwd: root, encoding: 'utf8', env: { ...process.env, PLUGIN: 'dsh-tether-ios', VERSION: '0.1.0' },
-  })
-  assert.notEqual(result.status, 0)
-  assert.match(result.stderr, /publishing is disabled/)
-  const manifest = JSON.parse(await readFile(root + 'packages/dsh-tether-ios/package.json', 'utf8'))
-  assert.deepEqual(manifest.dsh.compatibility.dshReleases, {})
+import { releaseEntry } from '../../../scripts/release-contract.mjs'
+test('pending-device metadata still blocks publication before any mutation', async () => {
+  const registry=JSON.parse(await readFile(new URL('../../../plugins.json',import.meta.url),'utf8'))
+  const entry=registry.plugins.find(p=>p.name==='dsh-tether-ios')
+  assert.throws(()=>releaseEntry({...entry,releaseReady:false},entry.name),/publishing is disabled/)
 })

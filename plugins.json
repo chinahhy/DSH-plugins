@@ -17,15 +17,15 @@
       "title": "iOS 远程连接",
       "directory": "packages/dsh-tether-ios",
       "version": "0.1.0",
-      "dshVersions": [],
-      "targetDshVersions": [
+      "dshVersions": [
         "0.2.0-rc.2"
       ],
-      "validation": "pending-device",
-      "releaseReady": false,
-      "description": "macOS arm64 + iOS；仅完成源码/API/CI 验证后交付候选包，真机待验收。",
+      "validation": "physical-basic-and-cellular",
+      "releaseReady": true,
+      "description": "在 iPhone 上远程操作 macOS Apple Silicon 的 DSH Desktop；支持配对、审批通知和设备撤销。",
       "releaseTag": null,
-      "marketEntry": "chinahhy__DSH-plugins--packages-dsh-tether-ios.yml"
+      "marketEntry": "chinahhy__DSH-plugins--packages-dsh-tether-ios.yml",
+      "nativeTarget": "darwin-arm64"
     }
   ]
 }

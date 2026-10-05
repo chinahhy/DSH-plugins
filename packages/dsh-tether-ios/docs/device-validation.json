@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-05",
+  "dshVersion": "0.2.0-rc.2",
+  "mac": "Mac mini M4",
+  "phone": "iOS arm64 iPhone",
+  "testedSourceCommit": "848416afe7536f8ea3bbc7ed3e3ee227c2e8a2c3",
+  "agentVerified": [
+    "native Desktop plugin load and device panel",
+    "owned sidecar exits on normal Desktop quit",
+    "sidecar restarts with Desktop",
+    "other 11 installed plugins and credentials unchanged"
+  ],
+  "userReported": [
+    "normal use on physical iPhone",
+    "outdoor cellular connection to home DSH"
+  ],
+  "notSeparatelyVerified": [
+    "direct versus relay transport path",
+    "forced relay fallback",
+    "sleep/wake and background/foreground recovery",
+    "all approval and revocation scenarios on physical devices"
+  ],
+  "runtimeCodeChangedSinceTest": false
+}

@@ -8,14 +8,14 @@
 | 插件 | 当前版本 | 已验证 DSH | 功能 | 发布 |
 | --- | --- | --- | --- | --- |
 | [dsh-sidebar-quota](packages/dsh-sidebar-quota) | 0.1.4 | 0.2.0-rc.2 | DeepSeek、ChatGPT / Codex、MoonShot 的余额、剩余额度和本机今日估算消费，支持手动刷新与独立折叠。 | [dsh-sidebar-quota-v0.1.4](https://github.com/chinahhy/DSH-plugins/releases/tag/dsh-sidebar-quota-v0.1.4) |
-| [dsh-tether-ios](packages/dsh-tether-ios) | 0.1.0 | 待真机验证（目标 0.2.0-rc.2） | macOS arm64 + iOS；仅完成源码/API/CI 验证后交付候选包，真机待验收。 | 首次 Actions 发布待执行 |
+| [dsh-tether-ios](packages/dsh-tether-ios) | 0.1.0 | 0.2.0-rc.2 | 在 iPhone 上远程操作 macOS Apple Silicon 的 DSH Desktop；支持配对、审批通知和设备撤销。 | 首次 Actions 发布待执行 |
 
 列表由 plugins.json 生成；发布 Actions 自动更新版本，不手工维护两份台账。
 
 ## 版本需求
 
-目前侧栏插件只承诺官方 **DSH 0.2.0-rc.2**，Node.js **24+**；macOS 官方桌面端使用 desktop profile。
-web profile 使用相同 Host/Client 接口。包的 engines.dsh 和 dsh.compatibility 均限定实测版本。
+目前插件只承诺官方 **DSH 0.2.0-rc.2**，Node.js **24+**；macOS 官方桌面端使用 desktop profile。
+侧栏插件可用 web profile；iOS 远程插件仅面向 macOS Apple Silicon Desktop。包的 engines.dsh 和 dsh.compatibility 均限定实测版本。
 新版 DSH 必须核对接口并实机验证后再扩大兼容范围。CI 绿灯不能代替实机兼容检查。
 详细记录见 [兼容性记录](docs/compatibility.md)。
 
@@ -25,7 +25,7 @@ web profile 使用相同 Host/Client 接口。包的 engines.dsh 和 dsh.compati
 [awesome-dsh-plugin](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin)。首次收录需要维护者合并条目申请。
 目录支持 monorepo 子目录；每个自制插件单独上架，不把整个仓库作为聚合插件安装。
 
-1. 条目收录后，在 DSH 插件市场找到 dsh-sidebar-quota 并安装。
+1. 条目收录后，在 DSH 插件市场找到所需插件并安装。
 2. 新版通过本仓库 Actions 发布后，在 DSH 中检查更新并点击“更新”，按提示刷新或重启。
 3. 已经以本地 link/file 装过的版本，需要**一次性切换到 GitHub 安装源**；本地链接不会自动跟随 GitHub。
 

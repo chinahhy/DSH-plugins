@@ -1,7 +1,7 @@
 {
   "name": "dsh-tether-ios",
   "version": "0.1.0",
-  "description": "DSH Desktop 0.2.0-rc.2 iOS remote companion (macOS arm64, pre-release validation)",
+  "description": "iOS remote companion for DSH Desktop 0.2.0-rc.2 on macOS Apple Silicon",
   "type": "module",
   "license": "MIT",
   "main": "./lib/index.js",
@@ -57,7 +57,9 @@
     },
     "compatibility": {
       "dsh": "0.2.0-rc.2",
-      "dshReleases": {}
+      "dshReleases": {
+        "0.2.0-rc.2": "compatible"
+      }
     }
   },
   "scripts": {

@@ -1,10 +1,11 @@
-# dsh-tether-ios (candidate)
+# dsh-tether-ios
 
 macOS Apple Silicon companion for the iOS arm64 app at
 [chinahhy/dsh-tether ios-only](https://github.com/chinahhy/dsh-tether/tree/ios-only).
-Targets **DSH Desktop 0.2.0-rc.2 only**. Source/API and synthetic CI verification
-are distinct from Mac mini M4 + iPhone acceptance, which is still pending.
-`dshReleases` deliberately makes no `compatible` claim; release is blocked.
+Verified with **DSH Desktop 0.2.0-rc.2 only**, Mac mini M4 and an iOS arm64 iPhone.
+On 2026-10-05 the maintainer confirmed normal physical-device use and an outdoor
+cellular connection to the home DSH. The actual direct/relay path and sleep/wake
+recovery were not separately established. See [validation scope](docs/device-validation.json).
 
 ## Architecture
 
@@ -21,13 +22,22 @@ Pairing: 6 digits, 10 minutes, at most 3 wrong attempts per window. Revocation
 closes active connections. The phone app's existing localhost-proxy limitation
 still applies; the plugin does not create an iOS background push service.
 
-## Candidate installation (not performed by this task)
+## Installation
 
-Use only the CI-produced `dsh-tether-ios-0.1.0.tgz`, verify SHA256SUMS first.
-Do **not** install the GitHub source subdirectory: native binaries are controlled
-artifacts, not Git files. In DSH's plugin manager install the local archive into
-its existing desktop profile; do not create a web profile or global dsh command.
-Do not install until the separate real-device acceptance step is authorized.
+The published `main` package includes the verified `bin/darwin-arm64/tether-host`.
+No Rust compiler, installation hooks or separate download are needed. Install the
+GitHub subpackage through DSH's plugin manager:
+
+```text
+github:chinahhy/DSH-plugins#path:/packages/dsh-tether-ios
+```
+
+For manual/offline installation, use the versioned `.tgz` and `SHA256SUMS` from
+[GitHub Releases](https://github.com/chinahhy/DSH-plugins/releases).
+Use the existing Desktop `desktop` profile. Do not create an extra web profile.
+Development branches intentionally omit native binaries; use published `main`
+or a complete CI archive. Existing local link/file installs do not automatically
+follow GitHub updates and require an explicitly authorized source migration.
 
 The official Desktop profile/package manager owns dependency and bundle changes.
 The bundle adds the host plus in-app directory browsing, and disables the exact
@@ -70,16 +80,17 @@ The browser session cookie stays in parent/child memory and is never logged.
 `node scripts/build.mjs`; `node --test test/*.test.mjs` require only Node 24.
 Rust build/test and official DSH API integration run on the macOS arm64 Actions
 runner. `scripts/build-sidecar.mjs` uses Cargo.lock and targets aarch64-apple-darwin.
-The CI artifact contains the tgz, checksums, source commit, API evidence,
-licenses and test evidence. It is ad-hoc/unsigned development material, not
-notarized distribution. No Release, npm publish, market submission or main
-promotion is performed. Existing Publish plugin refuses this pending package.
+Actions builds and tests the locked macOS arm64 host, verifies the native checksum
+and licenses, then promotes only this package to `main` and creates a versioned
+Release. Source installs and tgz installs both include the binary. It has an
+ad-hoc linker signature; it is not a notarized distribution. No npm publication
+or global installation is involved.
 
-## Real-device acceptance still required
+## Remaining validation boundaries
 
-- Install/remove/reload in the native Desktop; confirm no orphan child or extra files.
-- iPhone rendering, pairing/reconnect/revocation and folder browsing.
-- Wi-Fi/cellular direct path and relay fallback; sleep/wake and app foreground return.
+- Full uninstall/reset and all reload paths; normal Desktop quit/restart was verified.
+- Exhaustive iPhone UI, reconnect/revocation and folder browsing scenarios.
+- Identify direct versus relay transport, force relay fallback, and test sleep/wake and app foreground return. Outdoor cellular use was confirmed by the maintainer.
 - Approval notification while connected and approval decision in the real web UI.
 - Gatekeeper/quarantine behavior with the actual downloaded binary and signed iOS IPA.
 - Narrow-screen usability; this candidate does not copy upstream's fragile CSS selectors.
