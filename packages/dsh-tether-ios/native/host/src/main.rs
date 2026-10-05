@@ -244,11 +244,12 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn load_store(path: &Path) -> PairedStore {
-    std::fs::read(path)
-        .ok()
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default()
+fn load_store(path: &Path) -> Result<PairedStore> {
+    match std::fs::read(path) {
+        Ok(bytes) => Ok(serde_json::from_slice(&bytes).context("invalid paired device store")?),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(PairedStore::default()),
+        Err(error) => Err(error.into()),
+    }
 }
 
 // 白名单里每条都是一把长期凭证,与身份密钥同等对待:仅属主可读。
@@ -273,7 +274,7 @@ fn endpoint_builder() -> iroh::endpoint::Builder {
 async fn host_main(data_dir: PathBuf, force_pair: bool, proxy_target: Option<std::net::SocketAddr>) -> Result<()> {
     let secret = load_or_create_secret(&data_dir.join("identity.key"))?;
     let store_path = data_dir.join("paired.json");
-    let store = load_store(&store_path);
+    let store = load_store(&store_path)?;
     let ep = endpoint_builder()
         .secret_key(secret)
         .alpns(vec![ALPN.to_vec()])
@@ -467,6 +468,11 @@ async fn handle_phone(
     let (tx, mut rx) = mpsc::channel::<String>(64);
     {
         let mut s = state.lock().await;
+        // Revocation may race the initial Hello while its stream is still pending.
+        if !s.store.devices.iter().any(|device| device.id == remote) {
+            conn.close(1u8.into(), b"revoked");
+            return Ok(());
+        }
         if let Some(previous) = s.conns.insert(remote.clone(), PeerConn { tx, conn: conn.clone() }) {
             previous.conn.close(0u8.into(), b"replaced");
         }
@@ -592,3 +598,6 @@ fn chrono_now() -> String {
         .unwrap_or(0);
     format!("unix:{secs}")
 }
+
+#[cfg(test)]
+mod transport_tests;

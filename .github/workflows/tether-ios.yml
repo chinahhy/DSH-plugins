@@ -32,16 +32,16 @@ jobs:
           test "$(uname -m)" = arm64
           rustc --version
           cargo --version
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .cache/cargo
+            packages/dsh-tether-ios/native/target
+          key: tether-macos15-rust198-${{ hashFiles('packages/dsh-tether-ios/native/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: tether-macos15-rust198-${{ hashFiles('packages/dsh-tether-ios/native/Cargo.lock') }}-
       - name: Unit tests and prebuilt JavaScript
         working-directory: packages/dsh-tether-ios
         run: npm run check
-      - name: Normalize extracted workspace lockfile
-        run: cargo metadata --manifest-path packages/dsh-tether-ios/native/Cargo.toml --format-version 1 > tmp/cargo-metadata.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: normalized-tether-lockfile
-          path: packages/dsh-tether-ios/native/Cargo.lock
-          retention-days: 3
       - name: Build and test locked native host
         working-directory: packages/dsh-tether-ios
         run: npm run build:sidecar
@@ -66,3 +66,10 @@ jobs:
           path: build/tether-candidate/
           if-no-files-found: error
           retention-days: 14
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: always() && !cancelled()
+        with:
+          path: |
+            .cache/cargo
+            packages/dsh-tether-ios/native/target
+          key: tether-macos15-rust198-${{ hashFiles('packages/dsh-tether-ios/native/Cargo.lock') }}-${{ github.sha }}

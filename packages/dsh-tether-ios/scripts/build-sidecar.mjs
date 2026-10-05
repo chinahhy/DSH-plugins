@@ -7,7 +7,7 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') throw new Error('
 const root = fileURLToPath(new URL('../', import.meta.url))
 const target = root + 'native/target'
 for (const args of [
-  ['test', '--manifest-path', root + 'native/Cargo.toml', '--locked', '--target', 'aarch64-apple-darwin'],
+  ['test', '--release', '--manifest-path', root + 'native/Cargo.toml', '--locked', '--target', 'aarch64-apple-darwin'],
   ['build', '--manifest-path', root + 'native/Cargo.toml', '--locked', '--release', '--target', 'aarch64-apple-darwin', '-p', 'tether-host'],
 ]) {
   const result = spawnSync('cargo', args, { stdio: 'inherit', env: { ...process.env, CARGO_TARGET_DIR: target } })

@@ -34,6 +34,7 @@ export class Sidecar {
     this.child.once('error', () => this.fail('Sidecar could not start'))
     this.child.stdin.on('error', () => this.fail('Sidecar input closed'))
     this.closed = new Promise(resolve => this.child.once('close', () => {
+      this.hasClosed = true
       this.fail('Sidecar stopped')
       clearTimeout(this.killTimer)
       this.lines.close()
@@ -73,7 +74,7 @@ export class Sidecar {
     return result
   }
   async stop() {
-    if (this.stopping) return this.closed
+    if (this.stopping || this.hasClosed) return this.closed
     this.stopping = true
     this.fail('Plugin stopped')
     // EOF is the normal shutdown; SIGTERM and then SIGKILL bound stuck cleanup.
