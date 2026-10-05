@@ -1,0 +1,12 @@
+# Desktop uses the official web bundle. DSH discovers the Client export itself.
+- insert:
+    - id: dsh-tether-ios
+      name: dsh-tether-ios
+    - id: tether-ios-directory-picker-browse
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+    - id: tether-ios-directory-picker-browse-client
+      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'
+# Assertion targets the exact verified 0.2.0-rc.2 default.
+- id: directory-picker
+  name: '@deepseek-ai/dsh-host-directory-picker-auto'
+  disabled: true
