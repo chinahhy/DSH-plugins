@@ -18,7 +18,8 @@
     "direct versus relay transport path",
     "forced relay fallback",
     "sleep/wake and background/foreground recovery",
-    "all approval and revocation scenarios on physical devices"
+    "all approval and revocation scenarios on physical devices",
+    "physical iPhone using the optional self-hosted relay added after the 2026-10-05 test"
   ],
-  "runtimeCodeChangedSinceTest": false
+  "runtimeCodeChangedSinceTest": true
 }

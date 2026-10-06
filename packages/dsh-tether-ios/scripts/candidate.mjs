@@ -46,13 +46,14 @@ const hash = createHash('sha256').update(await readFile(join(out, packed.filenam
 await writeFile(join(out, 'SHA256SUMS'), `${hash}  ${packed.filename}\n`)
 await copyFile(root + 'docs/api-evidence.json', join(out, 'api-evidence.json'))
 await copyFile(root + 'native/Cargo.lock', join(out, 'Cargo.lock'))
+const deviceValidation = JSON.parse(await readFile(root + 'docs/device-validation.json', 'utf8'))
 await writeFile(join(out, 'candidate.json'), JSON.stringify({
   sourceCommit: process.env.GITHUB_SHA, artifact: packed.filename, sha256: hash,
   target: 'darwin-arm64', dshTarget: '0.2.0-rc.2',
   iosSource: '0c10375d5d1931bd8603f203c494e621dd5040a6',
   checks: ['node tests', 'cargo test --release --locked', 'real iroh pairing/proxy/reconnect/revocation', 'arm64 Mach-O', 'real DSH API lifecycle', 'parent stdin EOF'],
-  realDeviceValidated: true,
-  deviceValidation: JSON.parse(await readFile(root + 'docs/device-validation.json', 'utf8')),
+  realDeviceValidated: deviceValidation.runtimeCodeChangedSinceTest === false,
+  deviceValidation,
   published: false,
 }, null, 2) + '\n')
 console.log(`Candidate archive verified: ${packed.filename}`)
