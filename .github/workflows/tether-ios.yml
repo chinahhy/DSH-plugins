@@ -5,13 +5,24 @@ on:
   pull_request:
     paths: ['packages/dsh-tether-ios/**', '.github/workflows/tether-ios.yml']
   workflow_dispatch:
+    inputs:
+      relay_url:
+        description: 'Optional: only run external verification against this HTTPS relay'
+        type: string
+        default: ''
+      probe_run:
+        description: 'Successful candidate run providing the relay-probe binary'
+        type: string
+        default: ''
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: tether-candidate-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   mac-arm64:
+    if: ${{ !inputs.relay_url }}
     runs-on: macos-15
     timeout-minutes: 40
     env:
@@ -78,3 +89,49 @@ jobs:
             .cache/cargo
             packages/dsh-tether-ios/native/target
           key: tether-macos15-rust198-${{ hashFiles('packages/dsh-tether-ios/native/Cargo.lock') }}-${{ github.sha }}
+
+  external-relay:
+    if: ${{ inputs.relay_url != '' }}
+    runs-on: macos-15
+    timeout-minutes: 12
+    env:
+      RELAY_URL: ${{ inputs.relay_url }}
+      PROBE_RUN: ${{ inputs.probe_run }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Validate input and verify external IPv4 HTTPS endpoint
+        run: |
+          python3 - <<'PYCODE'
+          import os, urllib.parse
+          u=urllib.parse.urlsplit(os.environ['RELAY_URL'])
+          assert u.scheme=='https' and u.hostname and not u.username and not u.password and not u.query and not u.fragment and u.path in ('','/')
+          assert os.environ['PROBE_RUN'].isdigit()
+          PYCODE
+          curl -4 --fail --silent --show-error --max-time 20 "${RELAY_URL%/}/healthz" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["status"]=="ok" and d["version"]=="1.0.3"; print("external IPv4 HTTPS health verified")'
+      - name: Download previously validated synthetic probe
+        run: |
+          mkdir -p probe identities
+          gh run download "$PROBE_RUN" --dir probe
+          PROBE=$(find probe -type f -name relay-probe)
+          test -n "$PROBE"
+          chmod 755 "$PROBE"
+          echo "PROBE=$PROBE" >> "$GITHUB_ENV"
+          "$PROBE" init --directory "$GITHUB_WORKSPACE/identities"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: relay-probe-public-ids
+          path: identities/public-ids.json
+          retention-days: 1
+          if-no-files-found: error
+      - name: Await allowlist provisioning and exercise actual relay transport
+        run: |
+          # Private synthetic keys stay on this ephemeral runner and are never uploaded.
+          sleep 90
+          for ATTEMPT in 1 2 3 4; do
+            if "$PROBE" check --directory "$GITHUB_WORKSPACE/identities" --relay "$RELAY_URL" --public-phone; then
+              exit 0
+            fi
+            sleep 15
+          done
+          exit 1
