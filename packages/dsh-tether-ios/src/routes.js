@@ -21,7 +21,7 @@ function reply(res, status, value) {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
   res.end(JSON.stringify(value))
 }
-async function deviceId(req) {
+async function readBody(req) {
   let size = 0
   const chunks = []
   for await (const chunk of req) {
@@ -29,7 +29,10 @@ async function deviceId(req) {
     if (size > 1024) throw new Error('Invalid device ID')
     chunks.push(Buffer.from(chunk))
   }
-  const { id } = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}
+async function deviceId(req) {
+  const { id } = await readBody(req)
   if (typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id)) throw new Error('Invalid device ID')
   return id
 }
@@ -60,6 +63,17 @@ export function registerRoutes(server, connection, sidecar) {
       }
       const msg = await sidecar.request(command, 'devices')
       reply(res, 200, { devices: msg.devices })
+    })
+    add('/relay', ['GET', 'POST'], async (req, res) => {
+      if (req.method === 'POST') {
+        let value
+        try { value = await readBody(req) } catch { return reply(res, 400, { error: 'Invalid relay mode' }) }
+        if (!value || !['public', 'private'].includes(value.mode) || Object.keys(value).length !== 1) return reply(res, 400, { error: 'Invalid relay mode' })
+        if (sidecar.state().switching) return reply(res, 409, { error: 'Relay switching' })
+        try { return reply(res, 200, await sidecar.switchMode(value.mode)) }
+        catch { return reply(res, 503, { error: 'Relay switch failed', state: sidecar.state() }) }
+      }
+      reply(res, 200, sidecar.state())
     })
     add('/status', ['GET'], async (_req, res) => reply(res, 200, { ready: !sidecar.failure && Boolean(sidecar.endpointId) }))
     return () => registrations.reverse().forEach(dispose => dispose())

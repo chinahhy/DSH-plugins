@@ -152,6 +152,9 @@ enum Cmd {
         /// Additional HTTPS relay, retaining all public n0 relays and discovery.
         #[arg(long = "additional-relay")]
         additional_relays: Vec<iroh::RelayUrl>,
+        /// Use only the configured private relays; public discovery and IP transports remain.
+        #[arg(long)]
+        private_relay_only: bool,
     },
 
 }
@@ -236,12 +239,12 @@ async fn main() -> Result<()> {
     set_lang(lang_from_argv().as_deref());
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Host { data_dir, pair, proxy_target, additional_relays } => {
+        Cmd::Host { data_dir, pair, proxy_target, additional_relays, private_relay_only } => {
             if !data_dir.is_absolute() { bail!("--data-dir must be absolute"); }
             if proxy_target.is_some_and(|addr| !addr.ip().is_loopback()) {
                 bail!("--proxy-target must be loopback");
             }
-            host_main(data_dir, pair, proxy_target, &additional_relays).await?
+            host_main(data_dir, pair, proxy_target, &additional_relays, private_relay_only).await?
         }
     }
     Ok(())
@@ -282,17 +285,28 @@ fn additional_relay_map(additional_relays: &[iroh::RelayUrl]) -> Result<iroh::Re
     Ok(map)
 }
 
-fn endpoint_builder(additional_relays: &[iroh::RelayUrl]) -> Result<iroh::endpoint::Builder> {
+fn private_relay_map(additional_relays: &[iroh::RelayUrl]) -> Result<iroh::RelayMap> {
+    let first = additional_relays.first().context("Private relay mode requires a relay")?;
+    let map: iroh::RelayMap = iroh::RelayConfig::new(first.clone(), None).into();
+    for url in additional_relays {
+        if !url.as_str().starts_with("https://") { bail!("Private relays require HTTPS"); }
+        map.insert(url.clone(), Arc::new(iroh::RelayConfig::new(url.clone(), None)));
+    }
+    Ok(map)
+}
+
+fn endpoint_builder(additional_relays: &[iroh::RelayUrl], private_only: bool) -> Result<iroh::endpoint::Builder> {
     let builder = Endpoint::builder(presets::N0);
+    if private_only { return Ok(builder.relay_mode(iroh::RelayMode::Custom(private_relay_map(additional_relays)?))); }
     if additional_relays.is_empty() { return Ok(builder); }
     Ok(builder.relay_mode(iroh::RelayMode::Custom(additional_relay_map(additional_relays)?)))
 }
 
-async fn host_main(data_dir: PathBuf, force_pair: bool, proxy_target: Option<std::net::SocketAddr>, additional_relays: &[iroh::RelayUrl]) -> Result<()> {
+async fn host_main(data_dir: PathBuf, force_pair: bool, proxy_target: Option<std::net::SocketAddr>, additional_relays: &[iroh::RelayUrl], private_only: bool) -> Result<()> {
     let secret = load_or_create_secret(&data_dir.join("identity.key"))?;
     let store_path = data_dir.join("paired.json");
     let store = load_store(&store_path)?;
-    let ep = endpoint_builder(additional_relays)?
+    let ep = endpoint_builder(additional_relays, private_only)?
         .secret_key(secret)
         .alpns(vec![ALPN.to_vec()])
         .bind()

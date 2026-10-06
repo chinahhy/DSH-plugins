@@ -97,14 +97,32 @@ or global installation is involved.
 
 See [API evidence](docs/api-evidence.json) and [upstream changes](docs/upstream-diff.md).
 
-### Optional additional relay
+### Sidebar relay switch
 
-Public n0 relays and public address discovery remain enabled. To add your own HTTPS relay, place this optional configuration in the DSH-managed `data/dsh-tether-ios/relay.json`, then reload the plugin:
+A compact left/right switch sits above the quota panel (sidebar slot order 49).
+Left selects public n0 relays; right selects only the configured private relays
+for the Mac host. A private choice does not silently include public home relays.
+IP/QUIC direct transport and public discovery remain enabled; this switch does
+not disable discovery or change the phone's own home relay settings.
+
+Configure the existing DSH-owned `data/dsh-tether-ios/relay.json`:
 
 ```json
-{"version":1,"additionalRelayUrls":["https://relay.example.org:6270/"]}
+{"version":1,"mode":"private","additionalRelayUrls":["https://relay.example.org:6270/"]}
 ```
 
-Use an HTTPS origin without URL credentials, a path, query, or fragment. At most four extra relays are accepted. The relay must allow the Mac and paired phone endpoint identities. Added relays are HTTPS-only and do not assume a public QAD/UDP port. iroh chooses an available home relay; this is not a promise of private-relay priority or seamless failover. Public discovery still receives routing metadata. Remove this file and reload to restore the original public-only configuration.
+At most four plain HTTPS origins are accepted (no credentials/path/query/fragment).
+The private relay must allow the Mac and paired phone identities. Older files
+without mode select private when private URLs exist, otherwise public.
+The chosen mode survives reload. Switching briefly reconnects the phone but
+keeps host identity and pairing. Only the sidecar restarts, not Desktop.
 
-An existing phone can learn the host's relay URL through discovery; deployment compatibility must be verified with the actual phone before claiming end-to-end acceptance. The synthetic `relay-probe` example is a separate deployment tool and is not part of the plugin package.
+The authenticated local-only control route accepts a mode, never arbitrary URLs.
+Private health is checked before stopping the current child. Failed startup or
+configuration persistence restores the prior selection where possible; errors
+remain visible and never claim successful switching. One switch runs at a time.
+Existing pending approval notifications are replayed to the replacement sidecar.
+Private HTTPS health alone does not prove actual phone traffic used the relay.
+
+The current iOS app learns the host relay via discovery; actual phone reconnection
+and chosen transport need physical-device validation after changes.

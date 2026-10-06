@@ -123,7 +123,7 @@ test('optional relay configuration keeps default behavior and rejects credential
   try {
     assert.deepEqual(await additionalRelayArguments(dir), [])
     await put({ version: 1, additionalRelayUrls: ['https://relay.example.test:6270', 'https://relay.example.test:6270/'] })
-    assert.deepEqual(await additionalRelayArguments(dir), ['--additional-relay', 'https://relay.example.test:6270/'])
+    assert.deepEqual(await additionalRelayArguments(dir), ['--private-relay-only', '--additional-relay', 'https://relay.example.test:6270/'])
     for (const url of ['http://relay.example.test', 'https://user:secret@relay.example.test', 'https://relay.example.test/?token=secret', 'https://relay.example.test/path', 'https://relay.example.test/#secret']) {
       await put({ version: 1, additionalRelayUrls: [url] })
       await assert.rejects(additionalRelayArguments(dir))

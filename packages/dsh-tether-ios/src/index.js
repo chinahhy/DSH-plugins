@@ -1,10 +1,11 @@
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
-import { mkdir, realpath, lstat, access, readFile } from 'node:fs/promises'
+import { mkdir, realpath, lstat, access } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { join, isAbsolute, relative, sep } from 'node:path'
 import { Sidecar } from './sidecar.js'
 import { registerRoutes } from './routes.js'
+import { readRelayConfig, relayArguments, saveRelayConfig, RelayController } from './relay.js'
 
 export const name = 'dsh-tether-ios'
 export const inject = ['webServer', 'connection', 'dshHomePath']
@@ -30,22 +31,7 @@ export async function dataDirectory(resolveHome) {
   return directory
 }
 
-/** Optional user-owned data configuration. Public relays remain enabled. */
-export async function additionalRelayArguments(directory) {
-  const path = join(directory, 'relay.json')
-  let info
-  try { info = await lstat(path) } catch (error) { if (error.code === 'ENOENT') return []; throw error }
-  if (!info.isFile() || info.isSymbolicLink() || info.size > 4096) throw new Error('Invalid relay configuration file')
-  const config = JSON.parse(await readFile(path, 'utf8'))
-  if (config.version !== 1 || !Array.isArray(config.additionalRelayUrls) || config.additionalRelayUrls.length > 4) throw new Error('Invalid relay configuration')
-  const urls = config.additionalRelayUrls.map(value => {
-    if (typeof value !== 'string') throw new Error('Invalid relay URL')
-    const url = new URL(value)
-    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('Relay requires a plain HTTPS origin')
-    return url.href
-  })
-  return [...new Set(urls)].flatMap(url => ['--additional-relay', url])
-}
+export async function additionalRelayArguments(directory) { return relayArguments(await readRelayConfig(directory)) }
 
 export async function exchangeAuthentication(connection, authority, fetcher = fetch, signal) {
   const url = connection.authenticatedUrl(`http://${authority}/`)
@@ -78,21 +64,26 @@ export async function apply(ctx) {
   const authority = `127.0.0.1:${server.port}`
   const controller = new AbortController()
   ctx.effect(() => () => controller.abort(), 'tether: cancel authentication')
-  // Do not start an unauthenticated tunnel if the official exchange is unavailable.
-  let auth
-  try { auth = await exchangeAuthentication(ctx.connection, authority, fetch, controller.signal) }
-  catch { throw new Error('DSH 0.2.0-rc.2 browser authentication is unavailable') }
   const directory = await dataDirectory(ctx.dshHomePath)
-  const relayArgs = await additionalRelayArguments(directory)
-  const sidecar = new Sidecar(binary, ['host', '--data-dir', directory, '--proxy-target', authority, '--lang', 'en', ...relayArgs])
+  const sidecar = new RelayController(await readRelayConfig(directory), {
+    persist: (next, previous) => saveRelayConfig(directory, next, previous),
+    start: async config => {
+      const auth = await exchangeAuthentication(ctx.connection, authority, fetch, controller.signal)
+      const child = new Sidecar(binary, ['host', '--data-dir', directory, '--proxy-target', authority, '--lang', 'en', ...relayArguments(config)])
+      try {
+        await child.ready
+        if (controller.signal.aborted || !child.send(auth)) throw new Error('Authentication unavailable')
+        // Verify the stdio loop has processed authentication before declaring ready.
+        await child.request({ type: 'device-list' }, 'devices')
+        return child
+      } catch (error) { await child.stop(); throw error }
+    },
+  })
   ctx.effect(() => () => sidecar.stop(), 'tether: owned sidecar')
   try {
-    await sidecar.ready
-    sidecar.send(auth)
-    auth = undefined
+    await sidecar.initialize()
     ctx.effect(() => registerRoutes(server, ctx.connection, sidecar), 'tether: local control routes')
     observeApprovals(ctx, sidecar)
-    // No auth URL, cookie, pairing code, device name or model text is logged.
     const timer = setInterval(async () => {
       try { sidecar.send(await exchangeAuthentication(ctx.connection, authority, fetch, controller.signal)) }
       catch { await sidecar.stop() }

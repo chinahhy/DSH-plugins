@@ -129,3 +129,15 @@ fn additional_relays_preserve_all_public_servers_and_do_not_assume_qad() -> Resu
     assert!(additional_relay_map(&["http://relay.example.test".parse()?]).is_err());
     Ok(())
 }
+
+#[test]
+fn private_selection_excludes_public_relays_and_rejects_empty_or_insecure_maps() -> Result<()> {
+    let url: iroh::RelayUrl = "https://private.example.test:6270/".parse()?;
+    let map = private_relay_map(&[url.clone(), url.clone()])?;
+    assert_eq!(map.len(), 1);
+    assert!(map.contains(&url));
+    for public in iroh::RelayMode::Default.relay_map().urls::<Vec<_>>() { assert!(!map.contains(&public)); }
+    assert!(private_relay_map(&[]).is_err());
+    assert!(private_relay_map(&["http://private.example.test/".parse()?]).is_err());
+    Ok(())
+}
