@@ -96,3 +96,15 @@ or global installation is involved.
 - Narrow-screen usability; this candidate does not copy upstream's fragile CSS selectors.
 
 See [API evidence](docs/api-evidence.json) and [upstream changes](docs/upstream-diff.md).
+
+### Optional additional relay
+
+Public n0 relays and public address discovery remain enabled. To add your own HTTPS relay, place this optional configuration in the DSH-managed `data/dsh-tether-ios/relay.json`, then reload the plugin:
+
+```json
+{"version":1,"additionalRelayUrls":["https://relay.example.org:6270/"]}
+```
+
+Use an HTTPS origin without URL credentials, a path, query, or fragment. At most four extra relays are accepted. The relay must allow the Mac and paired phone endpoint identities. Added relays are HTTPS-only and do not assume a public QAD/UDP port. iroh chooses an available home relay; this is not a promise of private-relay priority or seamless failover. Public discovery still receives routing metadata. Remove this file and reload to restore the original public-only configuration.
+
+An existing phone can learn the host's relay URL through discovery; deployment compatibility must be verified with the actual phone before claiming end-to-end acceptance. The synthetic `relay-probe` example is a separate deployment tool and is not part of the plugin package.

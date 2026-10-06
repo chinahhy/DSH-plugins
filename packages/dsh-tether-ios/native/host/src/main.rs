@@ -149,6 +149,9 @@ enum Cmd {
             "where to forward proxy streams from paired devices (the dsh web address); without it they are refused",
         ))]
         proxy_target: Option<std::net::SocketAddr>,
+        /// Additional HTTPS relay, retaining all public n0 relays and discovery.
+        #[arg(long = "additional-relay")]
+        additional_relays: Vec<iroh::RelayUrl>,
     },
 
 }
@@ -233,12 +236,12 @@ async fn main() -> Result<()> {
     set_lang(lang_from_argv().as_deref());
     let cli = Cli::parse();
     match cli.cmd {
-        Cmd::Host { data_dir, pair, proxy_target } => {
+        Cmd::Host { data_dir, pair, proxy_target, additional_relays } => {
             if !data_dir.is_absolute() { bail!("--data-dir must be absolute"); }
             if proxy_target.is_some_and(|addr| !addr.ip().is_loopback()) {
                 bail!("--proxy-target must be loopback");
             }
-            host_main(data_dir, pair, proxy_target).await?
+            host_main(data_dir, pair, proxy_target, &additional_relays).await?
         }
     }
     Ok(())
@@ -267,15 +270,29 @@ fn emit(msg: &PluginOut) {
     println!("{}", serde_json::to_string(msg).expect("PluginOut is serializable"));
 }
 
-fn endpoint_builder() -> iroh::endpoint::Builder {
-    Endpoint::builder(presets::N0)
+fn additional_relay_map(additional_relays: &[iroh::RelayUrl]) -> Result<iroh::RelayMap> {
+    let map = iroh::RelayMode::Default.relay_map();
+    for url in additional_relays {
+        if !url.as_str().starts_with("https://") { bail!("Additional relays require HTTPS"); }
+        // Do not override n0's own QAD settings when the same URL is supplied.
+        if !map.contains(url) {
+            map.insert(url.clone(), Arc::new(iroh::RelayConfig::new(url.clone(), None)));
+        }
+    }
+    Ok(map)
 }
 
-async fn host_main(data_dir: PathBuf, force_pair: bool, proxy_target: Option<std::net::SocketAddr>) -> Result<()> {
+fn endpoint_builder(additional_relays: &[iroh::RelayUrl]) -> Result<iroh::endpoint::Builder> {
+    let builder = Endpoint::builder(presets::N0);
+    if additional_relays.is_empty() { return Ok(builder); }
+    Ok(builder.relay_mode(iroh::RelayMode::Custom(additional_relay_map(additional_relays)?)))
+}
+
+async fn host_main(data_dir: PathBuf, force_pair: bool, proxy_target: Option<std::net::SocketAddr>, additional_relays: &[iroh::RelayUrl]) -> Result<()> {
     let secret = load_or_create_secret(&data_dir.join("identity.key"))?;
     let store_path = data_dir.join("paired.json");
     let store = load_store(&store_path)?;
-    let ep = endpoint_builder()
+    let ep = endpoint_builder(additional_relays)?
         .secret_key(secret)
         .alpns(vec![ALPN.to_vec()])
         .bind()

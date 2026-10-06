@@ -12,7 +12,7 @@ struct Cli { #[command(subcommand)] command: Command }
 #[derive(Subcommand)]
 enum Command {
     Init { #[arg(long)] directory: PathBuf },
-    Check { #[arg(long)] directory: PathBuf, #[arg(long)] relay: RelayUrl },
+    Check { #[arg(long)] directory: PathBuf, #[arg(long)] relay: RelayUrl, #[arg(long)] public_phone: bool },
 }
 fn keys(dir: &PathBuf) -> Result<(SecretKey, SecretKey)> {
     Ok((load_or_create_secret(&dir.join("synthetic-host.key"))?, load_or_create_secret(&dir.join("synthetic-phone.key"))?))
@@ -24,11 +24,13 @@ async fn endpoint(key: SecretKey, relay: &RelayUrl) -> Result<Endpoint> {
         .clear_ip_transports()
         .alpns(vec![ALPN.to_vec()]).bind().await?)
 }
-async fn check(dir: PathBuf, relay: RelayUrl) -> Result<()> {
+async fn check(dir: PathBuf, relay: RelayUrl, public_phone: bool) -> Result<()> {
     ensure!(relay.as_str().starts_with("https://"), "Probe requires verified HTTPS");
     let (host_key, phone_key) = keys(&dir)?;
     let host = endpoint(host_key, &relay).await?;
-    let phone = endpoint(phone_key, &relay).await?;
+    let phone = if public_phone {
+        Endpoint::builder(presets::N0).secret_key(phone_key).clear_ip_transports().bind().await?
+    } else { endpoint(phone_key, &relay).await? };
     let host_addr = EndpointAddr::new(host.id()).with_relay_url(relay.clone());
     let expected_peer = phone.id();
     let server = host.clone();
@@ -77,7 +79,7 @@ async fn main() -> Result<()> {
             write_private(&directory.join("public-ids.json"), &serde_json::to_vec(&vec![host.public().to_string(), phone.public().to_string()])?)?;
             println!("Synthetic keys initialized; public IDs saved without printing secrets");
         }
-        Command::Check { directory, relay } => timeout(Duration::from_secs(70), check(directory, relay)).await??,
+        Command::Check { directory, relay, public_phone } => timeout(Duration::from_secs(70), check(directory, relay, public_phone)).await??,
     }
     Ok(())
 }

@@ -1,10 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, symlink, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, symlink, readdir, rm, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { PassThrough, Readable } from 'node:stream'
-import { assertPlatform, dataDirectory, exchangeAuthentication, observeApprovals } from '../src/index.js'
+import { assertPlatform, dataDirectory, additionalRelayArguments, exchangeAuthentication, observeApprovals } from '../src/index.js'
 import { Sidecar } from '../src/sidecar.js'
 import { rejection, registerRoutes } from '../src/routes.js'
 
@@ -113,4 +113,24 @@ test('unexpected child exit rejects in-flight callers without logging responses'
   const pending = sidecar.request({ type: 'device-list' }, 'devices')
   await new Promise(resolve => setImmediate(resolve)); child.emit('close')
   await assert.rejects(pending, /stopped/)
+})
+
+test('optional relay configuration keeps default behavior and rejects credential URLs or symlinks', async () => {
+  const base = resolve('tmp/tests'); await mkdir(base, { recursive: true })
+  const dir = await mkdtemp(join(base, 'relay-'))
+  const file = join(dir, 'relay.json')
+  const put = value => writeFile(file, JSON.stringify(value))
+  try {
+    assert.deepEqual(await additionalRelayArguments(dir), [])
+    await put({ version: 1, additionalRelayUrls: ['https://relay.example.test:6270', 'https://relay.example.test:6270/'] })
+    assert.deepEqual(await additionalRelayArguments(dir), ['--additional-relay', 'https://relay.example.test:6270/'])
+    for (const url of ['http://relay.example.test', 'https://user:secret@relay.example.test', 'https://relay.example.test/?token=secret', 'https://relay.example.test/path', 'https://relay.example.test/#secret']) {
+      await put({ version: 1, additionalRelayUrls: [url] })
+      await assert.rejects(additionalRelayArguments(dir))
+    }
+    await put({ version: 2, additionalRelayUrls: [] })
+    await assert.rejects(additionalRelayArguments(dir))
+    await rm(file); await symlink(join(dir, 'missing'), file)
+    await assert.rejects(additionalRelayArguments(dir), /configuration file/)
+  } finally { await rm(dir, { recursive: true, force: true }) }
 })

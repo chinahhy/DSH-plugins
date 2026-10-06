@@ -113,3 +113,19 @@ async fn transport_scenario() -> Result<()> {
     std::fs::remove_dir_all(dir)?;
     Ok(())
 }
+
+#[test]
+fn additional_relays_preserve_all_public_servers_and_do_not_assume_qad() -> Result<()> {
+    let defaults = iroh::RelayMode::Default.relay_map();
+    let private: iroh::RelayUrl = "https://relay.example.test:6270".parse()?;
+    let map = additional_relay_map(&[private.clone(), private.clone()])?;
+    assert_eq!(map.len(), defaults.len() + 1);
+    for url in defaults.urls::<Vec<_>>() {
+        assert!(map.contains(&url));
+        assert_eq!(map.get(&url), defaults.get(&url));
+    }
+    assert!(map.get(&private).unwrap().quic.is_none());
+    assert_eq!(additional_relay_map(&[])?.len(), defaults.len());
+    assert!(additional_relay_map(&["http://relay.example.test".parse()?]).is_err());
+    Ok(())
+}
