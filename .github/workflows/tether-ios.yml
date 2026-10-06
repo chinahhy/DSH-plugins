@@ -45,6 +45,11 @@ jobs:
       - name: Build and test locked native host
         working-directory: packages/dsh-tether-ios
         run: npm run build:sidecar
+      - name: Build synthetic relay-only deployment probe
+        working-directory: packages/dsh-tether-ios
+        run: |
+          cargo build --locked --release --target aarch64-apple-darwin --manifest-path native/Cargo.toml -p tether-host --example relay-probe
+          cp native/target/aarch64-apple-darwin/release/examples/relay-probe "$GITHUB_WORKSPACE/build/tether-candidate/relay-probe"
       - name: Validate native package
         working-directory: packages/dsh-tether-ios
         run: npm run verify:artifact
