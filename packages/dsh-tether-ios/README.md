@@ -99,6 +99,12 @@ See [API evidence](docs/api-evidence.json) and [upstream changes](docs/upstream-
 
 ### Sidebar relay switch
 
+The paired iPhone can read the current host relay selection. Its switch is read-only
+and shows that changes must be made in the Mac DSH window. Relay changes, pairing,
+and device management remain local-only; phone state reads still require DSH
+authentication, the control marker, and the same loopback/origin checks. The state
+response contains no relay URLs, device IDs, or pairing material.
+
 A compact left/right switch sits above the quota panel (sidebar slot order 49).
 Left selects public n0 relays; right selects only the configured private relays
 for the Mac host. A private choice does not silently include public home relays.

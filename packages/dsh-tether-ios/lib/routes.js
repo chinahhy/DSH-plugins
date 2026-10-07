@@ -2,7 +2,7 @@ export const PREFIX = '/dsh-tether'
 export const CONTROL_HEADER = 'x-dsh-tether-control'
 
 /** Exact authority plus DSH's own browser authentication; Desktop strips Origin. */
-export function rejection(req, server, connection) {
+export function rejection(req, server, connection, allowRemoteRead = false) {
   const hosts = [`127.0.0.1:${server.port}`, `localhost:${server.port}`]
   if (!hosts.includes(req.headers.host) || req.headers['sec-fetch-site'] === 'cross-site') return 403
   const address = req.socket?.remoteAddress
@@ -14,7 +14,7 @@ export function rejection(req, server, connection) {
     } catch { return 403 }
   }
   // The Rust proxy always overwrites this header. Only the local Desktop manages pairing.
-  if (req.headers['x-dsh-tether-remote'] !== undefined) return 403
+  if (req.headers['x-dsh-tether-remote'] !== undefined && !allowRemoteRead) return 403
   return connection.requestRejection(req)
 }
 function reply(res, status, value) {
@@ -41,7 +41,9 @@ export function registerRoutes(server, connection, sidecar) {
   const add = (suffix, methods, handler) => registrations.push(server.register({
     kind: 'exact', path: PREFIX + suffix,
     handler: async (req, res) => {
-      const denied = rejection(req, server, connection)
+      // A paired phone can see this non-sensitive state; all management stays local.
+      const remoteRead = suffix === '/relay' && req.method === 'GET'
+      const denied = rejection(req, server, connection, remoteRead)
       if (denied) return reply(res, denied, { error: 'Access denied' })
       if (!methods.includes(req.method)) return reply(res, 405, { error: 'Method not allowed' })
       if (req.headers[CONTROL_HEADER] !== '1') return reply(res, 403, { error: 'Access denied' })
@@ -73,7 +75,7 @@ export function registerRoutes(server, connection, sidecar) {
         try { return reply(res, 200, await sidecar.switchMode(value.mode)) }
         catch { return reply(res, 503, { error: 'Relay switch failed', state: sidecar.state() }) }
       }
-      reply(res, 200, sidecar.state())
+      reply(res, 200, { ...sidecar.state(), canSwitch: req.headers['x-dsh-tether-remote'] === undefined })
     })
     add('/status', ['GET'], async (_req, res) => reply(res, 200, { ready: !sidecar.failure && Boolean(sidecar.endpointId) }))
     return () => registrations.reverse().forEach(dispose => dispose())

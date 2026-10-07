@@ -30,7 +30,7 @@ function RelaySwitch({ wide }) {
     return () => { alive.current = false; clearInterval(timer) }
   }, [])
   const choose = async mode => {
-    if (gate.current || !state || state.switching || !state.privateAvailable || (state.mode === mode && state.ready)) return
+    if (gate.current || !state || state.canSwitch === false || state.switching || !state.privateAvailable || (state.mode === mode && state.ready)) return
     gate.current = true; epoch.current++; setBusy(true); setError('')
     try {
       const next = await control('relay', 'POST', { mode })
@@ -42,8 +42,9 @@ function RelaySwitch({ wide }) {
   }
   const selected = state?.mode === 'private'
   const pending = busy || state?.switching
-  const disabled = !state || pending || !state.privateAvailable
-  const description = !state ? '正在读取中继设置' : !state.privateAvailable ? '尚未配置自建中继' : '选择 Mac 使用的中继；切换时手机会短暂重连，直连仍可用'
+  const remote = state?.canSwitch === false
+  const disabled = !state || remote || pending || !state.privateAvailable
+  const description = !state ? '正在读取中继设置' : remote ? '当前中继由 Mac 管理，请在 Mac 的 DSH 窗口切换' : !state.privateAvailable ? '尚未配置自建中继' : '选择 Mac 使用的中继；切换时手机会短暂重连，直连仍可用'
   return h('div', { 'data-tether-relay': true, 'data-compact': wide === false ? 'true' : undefined },
     wide !== false && h('span', { className: 'tether-relay-caption' }, '远程中继'),
     h('button', {
@@ -61,8 +62,8 @@ function RelaySwitch({ wide }) {
       h('span', { 'aria-hidden': true }, wide === false ? '公' : '公共'),
       h('span', { 'aria-hidden': true }, wide === false ? '自' : '自建'),
     ),
-    h('span', { className: error ? 'tether-relay-error' : 'tether-relay-sr', role: error ? 'alert' : 'status', 'aria-live': 'polite' },
-      error || (pending ? '正在切换中继' : state ? (state.ready ? (selected ? '已选择自建中继' : '已选择公共中继') : '连接服务待恢复') : '正在读取')),
+    h('span', { className: error ? 'tether-relay-error' : remote ? 'tether-relay-hint' : 'tether-relay-sr', role: error ? 'alert' : 'status', 'aria-live': 'polite' },
+      error || (pending ? '正在切换中继' : state ? (state.ready ? ((selected ? '已选择自建中继' : '已选择公共中继') + (remote ? ' · 请在 Mac 切换' : '')) : '连接服务待恢复') : '正在读取')),
   )
 }
 
@@ -111,7 +112,7 @@ exports.apply = ctx => {
     const style = document.createElement('style')
     style.textContent = '[data-tether-ios] button{cursor:pointer;padding:6px 10px}.tether-ios-overlay{position:fixed;inset:0;z-index:10000;background:#0008;display:grid;place-items:center}.tether-ios-dialog{background:Canvas;color:CanvasText;border:1px solid GrayText;border-radius:12px;padding:24px;width:min(520px,90vw);max-height:85vh;overflow:auto}.tether-ios-dialog textarea{display:block;width:100%;box-sizing:border-box;margin-top:12px}.tether-ios-dialog li{display:flex;justify-content:space-between;gap:12px;margin:8px 0}'
     // The slot anchor uses display:contents; stack its actual flex parent, scoped to our control.
-    style.textContent += "div:has(> [data-slot=\"sidebar.footer.action\"] [data-tether-relay]){flex-direction:column;align-items:stretch}[data-tether-relay]{box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px 9px;flex-wrap:wrap;color:var(--text-secondary,GrayText);font-size:12px}[data-tether-relay] .tether-relay-switch{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;isolation:isolate;min-width:104px;height:28px;padding:2px;border:1px solid color-mix(in srgb,CanvasText 14%,transparent);border-radius:999px;background:color-mix(in srgb,CanvasText 6%,Canvas);color:inherit;font:inherit;cursor:pointer;touch-action:manipulation}[data-tether-relay] .tether-relay-switch>span:not(.tether-relay-thumb){z-index:1;text-align:center;line-height:22px}[data-tether-relay] .tether-relay-thumb{position:absolute;inset:2px auto 2px 2px;width:calc(50% - 2px);border-radius:999px;background:Canvas;box-shadow:0 1px 4px #0002;transition:transform .16s ease}[data-tether-relay] [data-private=true] .tether-relay-thumb{transform:translateX(100%)}[data-tether-relay] [data-private=false]>span:nth-child(2),[data-tether-relay] [data-private=true]>span:nth-child(3){color:CanvasText;font-weight:600}[data-tether-relay] button:focus-visible{outline:2px solid Highlight;outline-offset:3px}[data-tether-relay] button:disabled{cursor:default;opacity:.55}[data-tether-relay] .tether-relay-error{flex-basis:100%;font-size:11px;color:var(--text-error,#c33);overflow-wrap:anywhere}[data-tether-relay] .tether-relay-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}[data-tether-relay][data-compact=true]{padding:5px 2px;justify-content:center}[data-tether-relay][data-compact=true] button{min-width:36px;width:36px;height:24px;font-size:10px}@media(prefers-reduced-motion:reduce){[data-tether-relay] .tether-relay-thumb{transition:none}}"
+    style.textContent += "div:has(> [data-slot=\"sidebar.footer.action\"] [data-tether-relay]){flex-direction:column;align-items:stretch}[data-tether-relay]{box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px 9px;flex-wrap:wrap;color:var(--text-secondary,GrayText);font-size:12px}[data-tether-relay] .tether-relay-switch{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;isolation:isolate;min-width:104px;height:28px;padding:2px;border:1px solid color-mix(in srgb,CanvasText 14%,transparent);border-radius:999px;background:color-mix(in srgb,CanvasText 6%,Canvas);color:inherit;font:inherit;cursor:pointer;touch-action:manipulation}[data-tether-relay] .tether-relay-switch>span:not(.tether-relay-thumb){z-index:1;text-align:center;line-height:22px}[data-tether-relay] .tether-relay-thumb{position:absolute;inset:2px auto 2px 2px;width:calc(50% - 2px);border-radius:999px;background:Canvas;box-shadow:0 1px 4px #0002;transition:transform .16s ease}[data-tether-relay] [data-private=true] .tether-relay-thumb{transform:translateX(100%)}[data-tether-relay] [data-private=false]>span:nth-child(2),[data-tether-relay] [data-private=true]>span:nth-child(3){color:CanvasText;font-weight:600}[data-tether-relay] button:focus-visible{outline:2px solid Highlight;outline-offset:3px}[data-tether-relay] button:disabled{cursor:default;opacity:.55}[data-tether-relay] .tether-relay-hint{flex-basis:100%;font-size:11px;overflow-wrap:anywhere}[data-tether-relay] .tether-relay-error{flex-basis:100%;font-size:11px;color:var(--text-error,#c33);overflow-wrap:anywhere}[data-tether-relay] .tether-relay-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}[data-tether-relay][data-compact=true]{padding:5px 2px;justify-content:center}[data-tether-relay][data-compact=true] button{min-width:36px;width:36px;height:24px;font-size:10px}@media(prefers-reduced-motion:reduce){[data-tether-relay] .tether-relay-thumb{transition:none}}"
     document.head.appendChild(style)
     return () => style.remove()
   })

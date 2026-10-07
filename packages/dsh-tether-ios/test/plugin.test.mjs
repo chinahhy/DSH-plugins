@@ -63,6 +63,8 @@ test('routes require POST for pairing and reject missing markers, invalid IDs, a
   assert.equal((await call('pairing', request())).status, 405)
   assert.equal((await call('pairing', request({}, 'OPTIONS'))).status, 405)
   assert.equal((await call('pairing', request({ 'x-dsh-tether-control': undefined }, 'POST'))).status, 403)
+  assert.equal((await call('pairing', request({ 'x-dsh-tether-remote': '1' }, 'POST'))).status, 403)
+  assert.equal((await call('devices', request({ 'x-dsh-tether-remote': '1' }))).status, 403)
   assert.equal((await call('pairing', request({}, 'POST'))).body.pairingString, id + '#012345')
   assert.equal((await call('devices', request({}, 'POST', JSON.stringify({ id: '../bad' })))).status, 400)
   assert.equal((await call('devices', request({}, 'POST', 'x'.repeat(1025)))).status, 400)
