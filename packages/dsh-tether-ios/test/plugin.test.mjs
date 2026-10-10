@@ -65,12 +65,31 @@ test('routes require POST for pairing and reject missing markers, invalid IDs, a
   assert.equal((await call('pairing', request({ 'x-dsh-tether-control': undefined }, 'POST'))).status, 403)
   assert.equal((await call('pairing', request({ 'x-dsh-tether-remote': '1' }, 'POST'))).status, 403)
   assert.equal((await call('devices', request({ 'x-dsh-tether-remote': '1' }))).status, 403)
-  assert.equal((await call('pairing', request({}, 'POST'))).body.pairingString, id + '#012345')
+  const paired = await call('pairing', request({}, 'POST'))
+  assert.equal(paired.body.pairingString, id + '#012345')
+  assert.equal(paired.body.mobilePairingString, id + '#012345')
   assert.equal((await call('devices', request({}, 'POST', JSON.stringify({ id: '../bad' })))).status, 400)
   assert.equal((await call('devices', request({}, 'POST', 'x'.repeat(1025)))).status, 400)
   assert.equal((await call('devices', request({}, 'POST', JSON.stringify({ id })))).status, 200)
   assert.deepEqual(calls, [{ type: 'pairing-begin' }, { type: 'device-forget', id }])
   stop(); assert.equal(routes.size, 0)
+})
+test('native pairing ticket carries only the active private relay URLs on the local route', async () => {
+  const routes = new Map()
+  const sidecar = { endpointId: id, config: { mode: 'private', additionalRelayUrls: ['https://relay.example.test:6270/'] },
+    request: async () => ({ code: '123456', expires_in_sec: 600 }) }
+  const stop = registerRoutes({ ...server, register: route => { routes.set(route.path, route.handler); return () => routes.delete(route.path) } }, authenticated, sidecar)
+  const call = async req => {
+    const res = { writeHead(status) { this.status = status }, end(body) { this.body = JSON.parse(body) } }
+    await routes.get('/dsh-tether/pairing')(req, res); return res
+  }
+  try {
+    const denied = await call(request({ 'x-dsh-tether-remote': '1' }, 'POST'))
+    assert.equal(denied.status, 403)
+    const result = await call(request({}, 'POST'))
+    assert.equal(result.body.pairingString, `${id}#123456`)
+    assert.equal(result.body.mobilePairingString, `${id}#123456#https://relay.example.test:6270/`)
+  } finally { stop() }
 })
 test('approval observer delegates once, including missing callId and downstream failure', async () => {
   let listener; const sent = []

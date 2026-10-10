@@ -130,5 +130,11 @@ remain visible and never claim successful switching. One switch runs at a time.
 Existing pending approval notifications are replayed to the replacement sidecar.
 Private HTTPS health alone does not prove actual phone traffic used the relay.
 
-The current iOS app learns the host relay via discovery; actual phone reconnection
-and chosen transport need physical-device validation after changes.
+The native DSH Mobile pairing ticket includes the active private relay origins
+after the six-digit code. Paste the entire ticket into DSH Mobile; the older
+`iOS Tether` ticket remains available in the local pairing API as `pairingString`.
+Private relay URLs are never returned by the remote relay-state route. The native
+client saves relay origins with the paired Mac so a later reconnect can use the
+same private path. If the Mac's relay mode changes, paste a newly generated
+ticket to update the saved path. Physical-device reconnection and transport
+selection still require validation after a relay change.

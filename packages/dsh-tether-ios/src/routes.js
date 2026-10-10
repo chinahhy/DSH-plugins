@@ -54,7 +54,13 @@ export function registerRoutes(server, connection, sidecar) {
     add('/pairing', ['POST'], async (_req, res) => {
       const msg = await sidecar.request({ type: 'pairing-begin' }, 'pairing')
       if (!/^[0-9]{6}$/.test(msg.code) || !/^[a-f0-9]{64}$/.test(sidecar.endpointId)) throw new Error('Invalid pairing response')
-      reply(res, 200, { pairingString: `${sidecar.endpointId}#${msg.code}`, expiresInSec: msg.expires_in_sec })
+      const pairingString = `${sidecar.endpointId}#${msg.code}`
+      const privateRelays = sidecar.config?.mode === 'private' ? sidecar.config.additionalRelayUrls : []
+      reply(res, 200, {
+        pairingString,
+        mobilePairingString: privateRelays.length ? `${pairingString}#${privateRelays.join(',')}` : pairingString,
+        expiresInSec: msg.expires_in_sec,
+      })
     })
     add('/devices', ['GET', 'POST'], async (req, res) => {
       let command = { type: 'device-list' }
